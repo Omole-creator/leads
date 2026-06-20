@@ -37,6 +37,7 @@ export interface DashboardMetrics {
     leads: number;
     closeRate: number;
     won: number;
+    lost: number;
   }[];
 }
 
@@ -146,6 +147,7 @@ export async function computeDashboardMetrics(
         leads: rs.length,
         closeRate: conversion(rs).rate,
         won: rs.filter((r) => r.stage === "CLOSED_WON").length,
+        lost: rs.filter((r) => r.stage === "CLOSED_LOST").length,
       }))
       .sort((a, b) => b.won - a.won),
   };

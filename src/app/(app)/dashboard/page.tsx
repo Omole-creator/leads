@@ -45,8 +45,8 @@ export default async function DashboardPage({
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         <MetricCard label="Total Leads" value={String(m.totalLeads)} />
         <MetricCard label="Open" value={String(m.openLeads)} sub="in pipeline" />
-        <MetricCard label="Closed Won" value={String(m.closedWon)} />
-        <MetricCard label="Closed Lost" value={String(m.closedLost)} />
+        <MetricCard label="Sales Won" value={String(m.closedWon)} />
+        <MetricCard label="Sales Lost" value={String(m.closedLost)} />
         <MetricCard
           label="Close Rate"
           value={formatPercent(m.closeRate)}
@@ -89,9 +89,16 @@ export default async function DashboardPage({
           colors={CHART_COLORS}
         />
         <BarChartCard
-          title="Closed Won per Closer"
+          title="Sales Won per Closer"
           description="Deals won leaderboard"
           data={m.perRep.map((r) => ({ label: r.name, value: r.won }))}
+          horizontal
+          colors={CHART_COLORS}
+        />
+        <BarChartCard
+          title="Sales Lost per Closer"
+          description="Deals lost per closer"
+          data={m.perRep.map((r) => ({ label: r.name, value: r.lost }))}
           horizontal
           colors={CHART_COLORS}
         />
