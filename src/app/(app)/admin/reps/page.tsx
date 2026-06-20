@@ -14,7 +14,11 @@ export default async function AdminRepsPage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl font-bold">Sales Reps</h1>
+      <h1 className="text-2xl font-bold">Sales Closers</h1>
+      <p className="text-sm text-muted-foreground">
+        Add a closer with their Google email — they can then sign in with Google
+        and see only the leads assigned to them.
+      </p>
       <RepsManager
         reps={reps.map((r) => ({
           id: r.id,

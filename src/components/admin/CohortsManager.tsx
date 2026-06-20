@@ -47,6 +47,13 @@ export function CohortsManager({ cohorts }: { cohorts: CohortRow[] }) {
     refresh();
   }
 
+  async function remove(id: string) {
+    setError("");
+    const res = await fetch(`/api/cohorts/${id}`, { method: "DELETE" });
+    if (res.ok) refresh();
+    else setError((await res.json()).error ?? "Failed to delete cohort");
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-end gap-3 rounded-xl border border-brand-black/10 p-4">
@@ -93,12 +100,17 @@ export function CohortsManager({ cohorts }: { cohorts: CohortRow[] }) {
                     </Badge>
                   )}
                 </td>
-                <td className="px-4 py-3 text-right">
-                  {!c.active && (
-                    <Button size="sm" variant="outline" onClick={() => activate(c.id)}>
-                      Set active
+                <td className="px-4 py-3">
+                  <div className="flex justify-end gap-2">
+                    {!c.active && (
+                      <Button size="sm" variant="outline" onClick={() => activate(c.id)}>
+                        Set active
+                      </Button>
+                    )}
+                    <Button size="sm" variant="destructive" onClick={() => remove(c.id)}>
+                      Delete
                     </Button>
-                  )}
+                  </div>
                 </td>
               </tr>
             ))}

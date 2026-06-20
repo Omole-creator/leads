@@ -25,3 +25,25 @@ export async function PATCH(
   });
   return NextResponse.json(cohort);
 }
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const auth = await requireAdmin();
+  if ("response" in auth) return auth.response;
+  const { id } = await params;
+
+  const leadCount = await prisma.lead.count({ where: { cohortId: id } });
+  if (leadCount > 0) {
+    return NextResponse.json(
+      {
+        error: `This cohort has ${leadCount} lead(s). Reassign or delete those leads first.`,
+      },
+      { status: 409 },
+    );
+  }
+
+  await prisma.cohort.delete({ where: { id } });
+  return NextResponse.json({ ok: true });
+}

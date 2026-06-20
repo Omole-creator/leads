@@ -72,12 +72,12 @@ export function RepsManager({ reps }: { reps: RepRow[] }) {
         </Field>
         <Field label="Role">
           <Select value={role} onChange={(e) => setRole(e.target.value as "ADMIN" | "SALES_REP")}>
-            <option value="SALES_REP">Sales Rep</option>
+            <option value="SALES_REP">Sales Closer</option>
             <option value="ADMIN">Admin</option>
           </Select>
         </Field>
         <Button onClick={add} disabled={!name || !email}>
-          Add rep
+          Add closer
         </Button>
       </div>
       {error && <p className="text-sm text-destructive">{error}</p>}
@@ -98,7 +98,7 @@ export function RepsManager({ reps }: { reps: RepRow[] }) {
               <tr key={rep.id} className="border-t border-brand-black/5">
                 <td className="px-4 py-3 font-medium">{rep.name}</td>
                 <td className="px-4 py-3">{rep.email}</td>
-                <td className="px-4 py-3">{rep.role === "ADMIN" ? "Admin" : "Sales Rep"}</td>
+                <td className="px-4 py-3">{rep.role === "ADMIN" ? "Admin" : "Sales Closer"}</td>
                 <td className="px-4 py-3">
                   <Badge
                     className={

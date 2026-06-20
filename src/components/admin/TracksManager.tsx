@@ -45,6 +45,13 @@ export function TracksManager({ tracks }: { tracks: TrackRow[] }) {
     refresh();
   }
 
+  async function remove(id: string) {
+    setError("");
+    const res = await fetch(`/api/tracks/${id}`, { method: "DELETE" });
+    if (res.ok) refresh();
+    else setError((await res.json()).error ?? "Failed to delete track");
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-end gap-3 rounded-xl border border-brand-black/10 p-4">
@@ -100,6 +107,9 @@ export function TracksManager({ tracks }: { tracks: TrackRow[] }) {
                       onClick={() => patch(t.id, { active: !t.active })}
                     >
                       {t.active ? "Deactivate" : "Activate"}
+                    </Button>
+                    <Button size="sm" variant="destructive" onClick={() => remove(t.id)}>
+                      Delete
                     </Button>
                   </div>
                 </td>

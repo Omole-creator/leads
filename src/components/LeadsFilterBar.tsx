@@ -64,7 +64,7 @@ export function LeadsFilterBar({
       </div>
       {showRepFilter && (
         <FilterSelect
-          label="Rep"
+          label="Closer"
           param="repId"
           value={sp.get("repId") ?? ""}
           options={reps}

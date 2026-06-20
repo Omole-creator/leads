@@ -54,7 +54,7 @@ export default function LoginPage() {
                 }}
               >
                 <Button type="submit" variant="outline" className="w-full">
-                  Sign in as Sales Rep
+                  Sign in as Sales Closer
                 </Button>
               </form>
             </div>

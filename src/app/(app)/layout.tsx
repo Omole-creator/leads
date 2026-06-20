@@ -15,7 +15,7 @@ export default async function AppLayout({
 
   return (
     <div className="min-h-screen bg-brand-white text-brand-black">
-      <header className="sticky top-0 z-20 border-b border-brand-black/10 bg-brand-white">
+      <header className="sticky top-0 z-20 border-b-2 border-brand-yellow bg-brand-black text-brand-white">
         <div className="container flex h-14 items-center justify-between gap-4">
           <div className="flex items-center gap-6">
             <Logo />
@@ -24,7 +24,7 @@ export default async function AppLayout({
               <NavLink href="/leads">Leads</NavLink>
               {isAdmin && (
                 <>
-                  <NavLink href="/admin/reps">Reps</NavLink>
+                  <NavLink href="/admin/reps">Closers</NavLink>
                   <NavLink href="/admin/cohorts">Cohorts</NavLink>
                   <NavLink href="/admin/tracks">Tracks</NavLink>
                 </>
@@ -37,7 +37,11 @@ export default async function AppLayout({
               await signOut({ redirectTo: "/login" });
             }}
           >
-            <Button variant="outline" size="sm" type="submit">
+            <Button
+              size="sm"
+              type="submit"
+              className="bg-brand-yellow text-brand-black hover:brightness-90"
+            >
               Sign out
             </Button>
           </form>
@@ -52,7 +56,7 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
   return (
     <Link
       href={href}
-      className="rounded-md px-3 py-1.5 text-brand-black/70 transition-colors hover:bg-brand-black/5 hover:text-brand-black"
+      className="rounded-md px-3 py-1.5 text-brand-white/80 transition-colors hover:bg-brand-white/10 hover:text-brand-yellow"
     >
       {children}
     </Link>

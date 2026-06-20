@@ -59,7 +59,7 @@ export default async function LeadsPage({
               <th className="px-4 py-3 font-medium">Name</th>
               <th className="px-4 py-3 font-medium">Track</th>
               <th className="px-4 py-3 font-medium">Stage</th>
-              {isAdmin && <th className="px-4 py-3 font-medium">Rep</th>}
+              {isAdmin && <th className="px-4 py-3 font-medium">Closer</th>}
               <th className="px-4 py-3 font-medium">Source</th>
             </tr>
           </thead>

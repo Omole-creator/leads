@@ -65,7 +65,7 @@ export default async function LeadDetailPage({
             <Row label="Source" value={lead.howFoundUs} />
             <Row label="Start timeline" value={lead.startTimeline} />
             <Row
-              label="Assigned rep"
+              label="Assigned closer"
               value={lead.assignedRep?.name ?? "Unassigned"}
             />
           </CardContent>
@@ -87,7 +87,7 @@ export default async function LeadDetailPage({
             </CardHeader>
             <CardContent>
               <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                Assigned rep
+                Assigned closer
               </label>
               <ReassignControl
                 leadId={lead.id}

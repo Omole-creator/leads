@@ -5,6 +5,7 @@ import { computeDashboardMetrics } from "@/lib/metrics-service";
 import { MetricCard } from "@/components/MetricCard";
 import { CohortSelector } from "@/components/CohortSelector";
 import { BarChartCard, CHART_COLORS } from "@/components/charts/BarChartCard";
+import { PieChartCard } from "@/components/charts/PieChartCard";
 import { STAGE_LABELS } from "@/lib/constants";
 import { formatPercent } from "@/lib/utils";
 import type { Stage } from "@prisma/client";
@@ -53,27 +54,22 @@ export default async function DashboardPage({
         />
       </div>
 
-      {/* Charts */}
+      {/* Charts: a mix of pie + bar */}
       <div className="grid gap-4 lg:grid-cols-2">
+        <PieChartCard
+          title="Leads by Source"
+          description="Where leads come from"
+          data={toBars(m.leadsBySource)}
+        />
+        <PieChartCard
+          title="Pipeline by Stage"
+          description="How leads are distributed across the pipeline"
+          data={funnelData.filter((d) => d.value > 0)}
+        />
         <BarChartCard
           title="Leads by Track"
           description="Which skills draw the most demand"
           data={toBars(m.leadsByTrack)}
-          horizontal
-          colors={CHART_COLORS}
-        />
-        <BarChartCard
-          title="Leads by Source"
-          description="Where leads come from"
-          data={toBars(m.leadsBySource)}
-          horizontal
-          colors={CHART_COLORS}
-        />
-        <BarChartCard
-          title="Conversion Rate by Source"
-          description="Which channels actually convert (close rate)"
-          data={m.conversionBySource.map((r) => ({ label: r.label, value: r.rate }))}
-          format="percent"
           horizontal
           colors={CHART_COLORS}
         />
@@ -86,28 +82,16 @@ export default async function DashboardPage({
           colors={CHART_COLORS}
         />
         <BarChartCard
-          title="Pipeline Funnel by Stage"
-          description="Where leads sit in the pipeline"
-          data={funnelData}
-        />
-        <BarChartCard
-          title="Leads per Rep"
-          description="Workload across the sales team"
+          title="Leads per Closer"
+          description="Workload across the closing team"
           data={m.perRep.map((r) => ({ label: r.name, value: r.leads }))}
           horizontal
           colors={CHART_COLORS}
         />
         <BarChartCard
-          title="Closed Won per Rep"
+          title="Closed Won per Closer"
           description="Deals won leaderboard"
           data={m.perRep.map((r) => ({ label: r.name, value: r.won }))}
-          horizontal
-          colors={CHART_COLORS}
-        />
-        <BarChartCard
-          title="Leads by Cohort"
-          description="Volume across cohorts"
-          data={toBars(m.leadsByCohort)}
           horizontal
           colors={CHART_COLORS}
         />

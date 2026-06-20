@@ -33,9 +33,9 @@ async function main() {
   });
 
   const reps = [
-    { name: "Sales Rep One", email: "rep1@jobmingle.com" },
-    { name: "Sales Rep Two", email: "rep2@jobmingle.com" },
-    { name: "Sales Rep Three", email: "rep3@jobmingle.com" },
+    { name: "Sales Closer One", email: "rep1@jobmingle.com" },
+    { name: "Sales Closer Two", email: "rep2@jobmingle.com" },
+    { name: "Sales Closer Three", email: "rep3@jobmingle.com" },
   ];
   for (const r of reps) {
     await prisma.user.upsert({
