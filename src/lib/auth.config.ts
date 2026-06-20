@@ -8,7 +8,14 @@ import Google from "next-auth/providers/google";
  */
 export const authConfig = {
   pages: { signIn: "/login" },
-  providers: [Google],
+  providers: [
+    Google({
+      // Read our explicit env var names. Auth.js v5 would otherwise look for
+      // AUTH_GOOGLE_ID / AUTH_GOOGLE_SECRET and leave clientId undefined.
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    }),
+  ],
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
