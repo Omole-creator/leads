@@ -45,5 +45,12 @@ jobs:
       - run: npm run test:unit
       - run: npm run test:integration
 
+      # Integration tests truncate all tables, so re-seed the admin/reps the
+      # e2e login setup depends on.
+      - run: npm run db:seed
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+        env:
+          E2E_TEST_MODE: "true"
+          AUTH_TRUST_HOST: "true"
+          NEXTAUTH_URL: http://localhost:3000
