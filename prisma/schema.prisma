@@ -1,0 +1,141 @@
+// JobMingle Cohort Lead Tracking System — Prisma schema
+// See plan: amountPaid defaults to 0 at ingest (form has no payment field);
+// startTimeline is captured from the form and mapped to a find-or-created Cohort.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // pooled (Supabase pgbouncer, port 6543) at runtime
+  directUrl = env("DIRECT_URL")   // direct (port 5432) for migrations
+}
+
+enum Role {
+  ADMIN
+  SALES_REP
+}
+
+enum Stage {
+  NEW
+  CALLED
+  CLOSED_WON
+  CLOSED_LOST
+  NO_ANSWER
+  SILENT
+}
+
+enum FollowUpType {
+  INITIAL_CALL
+  WHATSAPP
+  PRICING_SENT
+  PAYMENT_LINK
+  PAYMENT_CONFIRMED
+  FINAL_FOLLOWUP
+  ONBOARDING
+}
+
+model User {
+  id             String   @id @default(uuid())
+  name           String
+  email          String   @unique
+  role           Role     @default(SALES_REP)
+  active         Boolean  @default(true)
+  lastAssignedAt DateTime?
+  createdAt      DateTime @default(now())
+
+  assignedLeads Lead[]        @relation("AssignedRep")
+  notes         Note[]
+  activityLog   ActivityLog[]
+  followUpsDone FollowUp[]
+}
+
+model Cohort {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  startDate DateTime
+  endDate   DateTime
+  active    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  leads Lead[]
+}
+
+model Track {
+  id     String  @id @default(uuid())
+  name   String  @unique
+  cost   Decimal @db.Decimal(12, 2)
+  active Boolean @default(true)
+
+  leads Lead[]
+}
+
+model Lead {
+  id             String   @id @default(uuid())
+  fullName       String
+  email          String
+  phone          String
+  trackId        String
+  amountPaid     Decimal  @default(0) @db.Decimal(12, 2)
+  balanceLeft    Decimal  @db.Decimal(12, 2)
+  howFoundUs     String
+  startTimeline  String
+  cohortId       String
+  assignedRepId  String?
+  stage          Stage    @default(NEW)
+  closedAt       DateTime?
+  createdAt      DateTime @default(now())
+  lastActivityAt DateTime @default(now())
+
+  track       Track         @relation(fields: [trackId], references: [id])
+  cohort      Cohort        @relation(fields: [cohortId], references: [id])
+  assignedRep User?         @relation("AssignedRep", fields: [assignedRepId], references: [id])
+  followUps   FollowUp[]
+  notes       Note[]
+  activityLog ActivityLog[]
+
+  @@index([cohortId])
+  @@index([assignedRepId])
+  @@index([stage])
+}
+
+model FollowUp {
+  id            String       @id @default(uuid())
+  leadId        String
+  type          FollowUpType
+  done          Boolean      @default(false)
+  completedAt   DateTime?
+  completedById String?
+
+  lead        Lead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  completedBy User? @relation(fields: [completedById], references: [id])
+
+  @@unique([leadId, type])
+}
+
+model Note {
+  id        String   @id @default(uuid())
+  leadId    String
+  authorId  String
+  body      String
+  createdAt DateTime @default(now())
+
+  lead   Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id])
+}
+
+model ActivityLog {
+  id        String   @id @default(uuid())
+  leadId    String
+  userId    String?
+  action    String
+  oldValue  Json?
+  newValue  Json?
+  createdAt DateTime @default(now())
+
+  lead Lead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([leadId])
+}

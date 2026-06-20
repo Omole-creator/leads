@@ -1,0 +1,49 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: jobmingle
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/jobmingle
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/jobmingle
+      DATABASE_URL_TEST: postgresql://postgres:postgres@localhost:5432/jobmingle
+      NEXTAUTH_SECRET: ci-dummy-secret
+      AUTH_SECRET: ci-dummy-secret
+      INGEST_SHARED_SECRET: ci-ingest-secret
+      APP_URL: http://localhost:3000
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
+      - run: npm run db:seed
+
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test:unit
+      - run: npm run test:integration
+
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
