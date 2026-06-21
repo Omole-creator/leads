@@ -9,6 +9,8 @@ import { StageControl } from "@/components/StageControl";
 import { FollowUpChecklist } from "@/components/FollowUpChecklist";
 import { NotesPanel } from "@/components/NotesPanel";
 import { ReassignControl } from "@/components/ReassignControl";
+import { commissionForTrackCost } from "@/lib/commission";
+import { formatNaira } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -67,6 +69,14 @@ export default async function LeadDetailPage({
             <Row
               label="Assigned closer"
               value={lead.assignedRep?.name ?? "Unassigned"}
+            />
+            <Row
+              label="Commission"
+              value={
+                lead.stage === "CLOSED_WON"
+                  ? `${formatNaira(commissionForTrackCost(Number(lead.track.cost)))} earned`
+                  : `${formatNaira(commissionForTrackCost(Number(lead.track.cost)))} on win`
+              }
             />
           </CardContent>
         </Card>

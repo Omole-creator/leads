@@ -15,16 +15,14 @@ export interface PieDatum {
   value: number;
 }
 
-// Brand-led palette: yellow + black + greys (heavy on black per brand).
+// Restrained brand palette: black + yellow primary, blue + red secondary, greys.
 export const PIE_COLORS = [
-  "#FFD400",
   "#0A0A0A",
-  "#F4B400",
-  "#3A3A3A",
-  "#FFE066",
+  "#FFD400",
+  "#1D4ED8",
+  "#E11D2A",
   "#6B6B6B",
   "#C9A400",
-  "#9A9A9A",
 ];
 
 export function PieChartCard({

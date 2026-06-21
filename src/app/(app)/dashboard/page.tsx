@@ -4,10 +4,10 @@ import { getCurrentUser } from "@/lib/auth";
 import { computeDashboardMetrics } from "@/lib/metrics-service";
 import { MetricCard } from "@/components/MetricCard";
 import { CohortSelector } from "@/components/CohortSelector";
-import { BarChartCard, CHART_COLORS } from "@/components/charts/BarChartCard";
+import { BarChartCard, STAGE_BAR_COLORS } from "@/components/charts/BarChartCard";
 import { PieChartCard } from "@/components/charts/PieChartCard";
 import { STAGE_LABELS } from "@/lib/constants";
-import { formatPercent } from "@/lib/utils";
+import { formatNaira, formatPercent } from "@/lib/utils";
 import type { Stage } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +19,7 @@ export default async function DashboardPage({
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  const isAdmin = user.role === "ADMIN";
   const sp = await searchParams;
 
   const [m, cohorts] = await Promise.all([
@@ -42,15 +43,21 @@ export default async function DashboardPage({
       </div>
 
       {/* KPI row */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
         <MetricCard label="Total Leads" value={String(m.totalLeads)} tone="black" />
-        <MetricCard label="Open" value={String(m.openLeads)} sub="in pipeline" tone="white" />
-        <MetricCard label="Sales Won" value={String(m.closedWon)} tone="yellow" />
-        <MetricCard label="Sales Lost" value={String(m.closedLost)} tone="black" />
+        <MetricCard label="Open" value={String(m.openLeads)} sub="in pipeline" tone="yellow" accent="blue" />
+        <MetricCard label="Sales Won" value={String(m.closedWon)} tone="black" />
+        <MetricCard label="Sales Lost" value={String(m.closedLost)} tone="yellow" accent="red" />
         <MetricCard
           label="Close Rate"
           value={formatPercent(m.closeRate)}
           sub="won / closed"
+          tone="black"
+        />
+        <MetricCard
+          label={isAdmin ? "Total Commission" : "My Commission"}
+          value={formatNaira(m.totalCommission)}
+          sub="earned on wins"
           tone="yellow"
         />
       </div>
@@ -66,13 +73,14 @@ export default async function DashboardPage({
           title="Pipeline by Stage"
           description="How leads are distributed across the pipeline"
           data={funnelData}
+          colors={STAGE_BAR_COLORS}
         />
         <BarChartCard
           title="Leads by Track"
           description="Which skills draw the most demand"
           data={toBars(m.leadsByTrack)}
           horizontal
-          colors={CHART_COLORS}
+          barColor="#0A0A0A"
         />
         <BarChartCard
           title="Conversion Rate by Track"
@@ -80,28 +88,36 @@ export default async function DashboardPage({
           data={m.conversionByTrack.map((r) => ({ label: r.label, value: r.rate }))}
           format="percent"
           horizontal
-          colors={CHART_COLORS}
+          barColor="#0A0A0A"
         />
         <BarChartCard
           title="Leads per Closer"
           description="Workload across the closing team"
           data={m.perRep.map((r) => ({ label: r.name, value: r.leads }))}
           horizontal
-          colors={CHART_COLORS}
+          barColor="#0A0A0A"
         />
         <BarChartCard
           title="Sales Won per Closer"
           description="Deals won leaderboard"
           data={m.perRep.map((r) => ({ label: r.name, value: r.won }))}
           horizontal
-          colors={CHART_COLORS}
+          barColor="#FFD400"
         />
         <BarChartCard
           title="Sales Lost per Closer"
           description="Deals lost per closer"
           data={m.perRep.map((r) => ({ label: r.name, value: r.lost }))}
           horizontal
-          colors={CHART_COLORS}
+          barColor="#E11D2A"
+        />
+        <BarChartCard
+          title="Commission per Closer"
+          description="Earnings on won deals (₦)"
+          data={m.perRep.map((r) => ({ label: r.name, value: r.commission }))}
+          format="naira"
+          horizontal
+          barColor="#FFD400"
         />
       </div>
     </div>

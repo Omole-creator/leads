@@ -24,20 +24,28 @@ const TONES: Record<Tone, { card: string; label: string; value: string; sub: str
   },
 };
 
+const ACCENTS = {
+  none: "",
+  blue: "border-l-4 border-l-brand-blue",
+  red: "border-l-4 border-l-brand-red",
+} as const;
+
 export function MetricCard({
   label,
   value,
   sub,
   tone = "white",
+  accent = "none",
 }: {
   label: string;
   value: string;
   sub?: string;
   tone?: Tone;
+  accent?: keyof typeof ACCENTS;
 }) {
   const t = TONES[tone];
   return (
-    <Card className={t.card}>
+    <Card className={cn(t.card, ACCENTS[accent])}>
       <CardContent className="p-5">
         <p className={cn("text-xs font-medium uppercase tracking-wide", t.label)}>
           {label}

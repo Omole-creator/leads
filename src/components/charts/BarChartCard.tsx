@@ -28,8 +28,13 @@ const FORMATTERS: Record<ValueFormat, (v: number) => string> = {
   percent: formatPercent,
 };
 
-const BRAND_YELLOW = "#FFD400";
-const BRAND_BLACK = "#0A0A0A";
+export const BRAND = {
+  yellow: "#FFD400",
+  black: "#0A0A0A",
+  blue: "#1D4ED8",
+  red: "#E11D2A",
+  grey: "#6B6B6B",
+} as const;
 
 export function BarChartCard({
   title,
@@ -37,6 +42,7 @@ export function BarChartCard({
   data,
   format = "number",
   horizontal = false,
+  barColor = BRAND.black,
   colors,
 }: {
   title: string;
@@ -44,6 +50,9 @@ export function BarChartCard({
   data: BarDatum[];
   format?: ValueFormat;
   horizontal?: boolean;
+  /** Single hue for all bars (default brand black). */
+  barColor?: string;
+  /** Per-bar colors (semantic) — overrides barColor when provided. */
   colors?: string[];
 }) {
   const fmt = FORMATTERS[format];
@@ -113,7 +122,7 @@ export function BarChartCard({
                 <Bar
                   dataKey="value"
                   radius={horizontal ? [0, 4, 4, 0] : [4, 4, 0, 0]}
-                  fill={BRAND_YELLOW}
+                  fill={barColor}
                   isAnimationActive={false}
                 >
                   {colors &&
@@ -130,11 +139,13 @@ export function BarChartCard({
   );
 }
 
-export const CHART_COLORS = [
-  BRAND_YELLOW,
-  BRAND_BLACK,
-  "#F4B400",
-  "#4A4A4A",
-  "#FFE066",
+// Semantic colors for pipeline stages, in STAGES order:
+// New, Called, Sales Won, Sales Lost, No Answer, Silent.
+export const STAGE_BAR_COLORS = [
+  BRAND.blue,
+  BRAND.black,
+  BRAND.yellow,
+  BRAND.red,
+  BRAND.grey,
   "#9A9A9A",
 ];

@@ -19,6 +19,8 @@ const config: Config = {
           yellow: "#FFD400",
           black: "#0A0A0A",
           white: "#FFFFFF",
+          blue: "#1D4ED8",
+          red: "#E11D2A",
         },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

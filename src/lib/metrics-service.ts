@@ -2,6 +2,7 @@ import type { PrismaClient, Stage } from "@prisma/client";
 import type { SessionUser } from "./permissions";
 import { leadWhere, type LeadFilters } from "./leads";
 import { closeRate, avgDaysToClose, funnel, type LeadForMetrics } from "./metrics";
+import { commissionEarned } from "./commission";
 
 export interface NamedCount {
   label: string;
@@ -26,6 +27,7 @@ export interface DashboardMetrics {
   closedWon: number;
   closedLost: number;
   openLeads: number;
+  totalCommission: number;
   leadsByTrack: NamedCount[];
   leadsBySource: NamedCount[];
   leadsByCohort: NamedCount[];
@@ -38,6 +40,7 @@ export interface DashboardMetrics {
     closeRate: number;
     won: number;
     lost: number;
+    commission: number;
   }[];
 }
 
@@ -48,6 +51,7 @@ interface Row {
   createdAt: Date;
   closedAt: Date | null;
   trackName: string;
+  trackCost: number;
   cohortName: string;
   source: string;
   repId: string | null;
@@ -89,6 +93,7 @@ export async function computeDashboardMetrics(
     createdAt: l.createdAt,
     closedAt: l.closedAt,
     trackName: l.track.name,
+    trackCost: Number(l.track.cost),
     cohortName: l.cohort.name,
     source: l.howFoundUs,
     repId: l.assignedRepId,
@@ -126,6 +131,8 @@ export async function computeDashboardMetrics(
 
   const closedWon = rows.filter((r) => r.stage === "CLOSED_WON").length;
   const closedLost = rows.filter((r) => r.stage === "CLOSED_LOST").length;
+  const commissionOf = (rs: Row[]) =>
+    rs.reduce((s, r) => s + commissionEarned(r.stage, r.trackCost), 0);
 
   return {
     totalLeads: rows.length,
@@ -135,6 +142,7 @@ export async function computeDashboardMetrics(
     closedWon,
     closedLost,
     openLeads: rows.length - closedWon - closedLost,
+    totalCommission: commissionOf(rows),
     leadsByTrack: namedCount(byTrack),
     leadsBySource: namedCount(bySource),
     leadsByCohort: namedCount(byCohort),
@@ -148,7 +156,8 @@ export async function computeDashboardMetrics(
         closeRate: conversion(rs).rate,
         won: rs.filter((r) => r.stage === "CLOSED_WON").length,
         lost: rs.filter((r) => r.stage === "CLOSED_LOST").length,
+        commission: commissionOf(rs),
       }))
-      .sort((a, b) => b.won - a.won),
+      .sort((a, b) => b.commission - a.commission),
   };
 }
