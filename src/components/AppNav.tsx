@@ -24,6 +24,7 @@ export function AppNav({ isAdmin }: { isAdmin: boolean }) {
           { href: "/admin/cohorts", label: "Cohorts" },
           { href: "/admin/tracks", label: "Tracks" },
           { href: "/admin/import", label: "Import" },
+          { href: "/admin/email", label: "Email" },
         ]
       : []),
   ];

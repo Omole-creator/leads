@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
     repId: sp.get("repId") ?? undefined,
     stage: (sp.get("stage") as Stage) ?? undefined,
     trackId: sp.get("trackId") ?? undefined,
+    segment: sp.get("segment") ?? undefined,
     from: sp.get("from") ? new Date(sp.get("from")!) : undefined,
     to: sp.get("to") ? new Date(sp.get("to")!) : undefined,
   };

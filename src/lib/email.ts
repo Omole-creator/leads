@@ -3,9 +3,60 @@ import { formatNaira } from "./utils";
 
 const apiKey = process.env.RESEND_API_KEY;
 const FROM = process.env.RESEND_FROM_EMAIL ?? "leads@jobmingle.com";
+const REPLY_TO = process.env.RESEND_REPLY_TO ?? FROM;
 const APP_URL = process.env.APP_URL ?? "http://localhost:3000";
 
 const resend = apiKey ? new Resend(apiKey) : null;
+
+export const emailEnabled = !!resend;
+
+export interface OutgoingEmail {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+}
+
+/**
+ * Send a batch of personalized emails via Resend (chunked to 100/request, with
+ * a small pause to respect rate limits). Returns counts. Never throws.
+ */
+export async function sendBulkEmails(
+  messages: OutgoingEmail[],
+): Promise<{ sent: number; failed: number }> {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set — skipping bulk send.");
+    return { sent: 0, failed: messages.length };
+  }
+  let sent = 0;
+  let failed = 0;
+  for (let i = 0; i < messages.length; i += 100) {
+    const chunk = messages.slice(i, i + 100);
+    try {
+      const { error } = await resend.batch.send(
+        chunk.map((m) => ({
+          from: FROM,
+          replyTo: REPLY_TO,
+          to: m.to,
+          subject: m.subject,
+          html: m.html,
+          text: m.text,
+        })),
+      );
+      if (error) {
+        failed += chunk.length;
+        console.error("[email] batch error:", error);
+      } else {
+        sent += chunk.length;
+      }
+    } catch (err) {
+      failed += chunk.length;
+      console.error("[email] batch send threw:", err);
+    }
+    if (i + 100 < messages.length) await new Promise((r) => setTimeout(r, 600));
+  }
+  return { sent, failed };
+}
 
 export interface LeadAssignedEmail {
   repName: string;
