@@ -7,6 +7,7 @@ var INGEST_SECRET = 'D50ej7rvhxDwCaSYr3FVLhglimTtqfwa';
 var LABEL_PROCESSED = 'lead-processed';
 var LABEL_FAILED = 'lead-failed';
 var LEAD_QUERY = 'new lead just submitted -label:lead-processed -label:lead-failed';
+var EMAIL_RE = /[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/;
 
 function processLeadEmails() {
   var threads = GmailApp.search(LEAD_QUERY, 0, 30);
@@ -39,23 +40,45 @@ function processLeadEmails() {
 }
 
 function parseLeadEmail(body) {
-  function get(labels) {
+  function getRaw(labels) {
     for (var j = 0; j < labels.length; j++) {
       var m = body.match(new RegExp(labels[j] + '\\s*:\\s*(.+)'));
       if (m) return m[1].trim();
     }
     return '';
   }
+  // Pull a clean email out of whatever the "Email:" line contains; fall back
+  // to scanning the whole body if the labelled line had no valid address.
+  var rawEmail = getRaw(['Email']);
+  var emailMatch = rawEmail.match(EMAIL_RE) || body.match(EMAIL_RE);
   return {
-    fullName: get(['Full Name']),
-    email: get(['Email']),
-    phone: get(['WhatsApp', 'Phone']),
-    trackSelected: get(['Interested Skill', 'Track']),
-    startTimeline: get(['Start Timeline']),
-    howFoundUs: get(['How Did You Hear About Us', 'How Did You Hear'])
+    fullName: getRaw(['Full Name']),
+    email: emailMatch ? emailMatch[0] : '',
+    phone: getRaw(['WhatsApp', 'Phone']),
+    trackSelected: getRaw(['Interested Skill', 'Track']),
+    startTimeline: getRaw(['Start Timeline']),
+    howFoundUs: getRaw(['How Did You Hear About Us', 'How Did You Hear'])
   };
 }
 
 function getOrCreateLabel(name) {
   return GmailApp.getUserLabelByName(name) || GmailApp.createLabel(name);
+}
+
+// --- Helpers ---
+
+// Run this and paste the log if leads still fail to parse — shows the raw body.
+function debugLatestLead() {
+  var threads = GmailApp.search('new lead just submitted', 0, 1);
+  if (!threads.length) { Logger.log('no matching email found'); return; }
+  Logger.log('----- RAW PLAIN BODY -----\n' + threads[0].getMessages()[0].getPlainBody());
+}
+
+// Run once to clear the lead-failed label so previously-failed emails retry.
+function clearFailedLabel() {
+  var label = GmailApp.getUserLabelByName(LABEL_FAILED);
+  if (!label) { Logger.log('no lead-failed label'); return; }
+  var threads = label.getThreads();
+  for (var i = 0; i < threads.length; i++) threads[i].removeLabel(label);
+  Logger.log('Cleared lead-failed from ' + threads.length + ' thread(s)');
 }
