@@ -67,7 +67,7 @@ function getOrCreateLabel(name) {
 
 // --- Helpers ---
 
-// Run this and paste the log if leads still fail to parse — shows the raw body.
+// Run this and paste the log if leads still fail to parse - shows the raw body.
 function debugLatestLead() {
   var threads = GmailApp.search('new lead just submitted', 0, 1);
   if (!threads.length) { Logger.log('no matching email found'); return; }
