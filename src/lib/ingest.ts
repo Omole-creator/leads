@@ -21,6 +21,12 @@ export function parseTrackName(raw: string): string {
   return (idx === -1 ? raw : raw.slice(0, idx)).trim();
 }
 
+/** Extract the price from an "Interested Skill" string, e.g. "... - ₦300,000" -> 300000. */
+export function parseTrackPrice(raw: string): number {
+  const m = raw.match(/₦\s*([\d,]+)/);
+  return m ? Number(m[1].replace(/[^\d]/g, "")) : 0;
+}
+
 /** Derive a clean cohort name from the form's "Start Timeline" value. */
 export function parseCohortName(raw: string): string {
   return raw.trim();
@@ -46,11 +52,21 @@ export async function ingestLead(
   const trackName = parseTrackName(input.trackSelected);
   const cohortName = parseCohortName(input.startTimeline);
 
-  // Track match by name, case-insensitively.
-  const track = await prisma.track.findFirst({
-    where: { name: { equals: trackName, mode: "insensitive" }, active: true },
-  });
-  if (!track) throw new TrackNotFoundError(input.trackSelected);
+  // Track match by name, case-insensitively. Unknown skills (the form offers
+  // options we may not have seeded, e.g. "I'm not sure yet") are auto-created
+  // from the email so no lead is ever dropped; admins can tidy tracks later.
+  const safeTrackName = trackName || input.trackSelected.trim();
+  const track =
+    (await prisma.track.findFirst({
+      where: { name: { equals: safeTrackName, mode: "insensitive" } },
+    })) ??
+    (await prisma.track.create({
+      data: {
+        name: safeTrackName,
+        cost: parseTrackPrice(input.trackSelected),
+        active: true,
+      },
+    }));
 
   const trackCost = Number(track.cost);
 

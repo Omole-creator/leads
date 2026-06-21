@@ -6,7 +6,7 @@ import {
   seedReps,
   hasTestDb,
 } from "./helpers";
-import { ingestLead, TrackNotFoundError, parseTrackName } from "@/lib/ingest";
+import { ingestLead, parseTrackName } from "@/lib/ingest";
 import { FOLLOW_UP_TYPES } from "@/lib/constants";
 
 // Mock the Resend wrapper so we can assert it's invoked without sending email.
@@ -53,10 +53,18 @@ describe.skipIf(!hasTestDb)("ingestLead (integration)", () => {
     await seedTracks(prisma);
   });
 
-  it("rejects when track name not found (404)", async () => {
-    await expect(
-      ingestLead(prisma, { ...baseInput, trackSelected: "Underwater Basket Weaving" }),
-    ).rejects.toBeInstanceOf(TrackNotFoundError);
+  it("auto-creates an unknown track from the email (name + price)", async () => {
+    await seedReps(prisma, 1);
+    const res = await ingestLead(prisma, {
+      ...baseInput,
+      trackSelected: "Brand New Skill - ₦200,000",
+    });
+    const lead = await prisma.lead.findUniqueOrThrow({
+      where: { id: res.id },
+      include: { track: true },
+    });
+    expect(lead.track.name).toBe("Brand New Skill");
+    expect(Number(lead.track.cost)).toBe(200000);
   });
 
   it("creates a lead with the seeded track price as balanceLeft", async () => {
