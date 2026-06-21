@@ -65,5 +65,21 @@ export async function POST(req: NextRequest) {
   }
 
   const result = await sendBulkEmails(messages);
+
+  await prisma.emailCampaign.create({
+    data: {
+      subject: subjectTpl,
+      body: bodyTpl,
+      segment: filters.segment ?? null,
+      trackId: filters.trackId ?? null,
+      stage: filters.stage ?? null,
+      cohortId: filters.cohortId ?? null,
+      recipients: messages.length,
+      sent: result.sent,
+      failed: result.failed,
+      sentById: auth.user.id,
+    },
+  });
+
   return NextResponse.json({ recipients: messages.length, ...result });
 }

@@ -2,8 +2,11 @@ import { Resend } from "resend";
 import { formatNaira } from "./utils";
 
 const apiKey = process.env.RESEND_API_KEY;
-const FROM = process.env.RESEND_FROM_EMAIL ?? "leads@jobmingle.com";
-const REPLY_TO = process.env.RESEND_REPLY_TO ?? FROM;
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? "leads@jobmingle.com";
+const FROM_NAME = process.env.RESEND_FROM_NAME ?? "JobMingle Academy";
+// Recipients see "JobMingle Academy <contact@jobmingle.co>".
+const FROM = `${FROM_NAME} <${FROM_EMAIL}>`;
+const REPLY_TO = process.env.RESEND_REPLY_TO ?? FROM_EMAIL;
 const APP_URL = process.env.APP_URL ?? "http://localhost:3000";
 
 const resend = apiKey ? new Resend(apiKey) : null;

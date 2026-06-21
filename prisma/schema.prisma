@@ -50,6 +50,25 @@ model User {
   activityLog   ActivityLog[]
   followUpsDone FollowUp[]
   followUpLogs  FollowUpLog[]
+  emailCampaigns EmailCampaign[]
+}
+
+// A record of each bulk email sent, so admins can revisit past sends.
+model EmailCampaign {
+  id         String   @id @default(uuid())
+  subject    String
+  body       String
+  segment    String?
+  trackId    String?
+  stage      String?
+  cohortId   String?
+  recipients Int      @default(0)
+  sent       Int      @default(0)
+  failed     Int      @default(0)
+  sentById   String?
+  createdAt  DateTime @default(now())
+
+  sentBy User? @relation(fields: [sentById], references: [id])
 }
 
 model Cohort {

@@ -11,10 +11,15 @@ export default async function EmailPage() {
   if (!user) redirect("/login");
   if (user.role !== "ADMIN") redirect("/dashboard");
 
-  const [tracks, cohorts, segmentRows] = await Promise.all([
+  const [tracks, cohorts, segmentRows, campaigns] = await Promise.all([
     prisma.track.findMany({ orderBy: { name: "asc" } }),
     prisma.cohort.findMany({ orderBy: { startDate: "desc" } }),
     prisma.lead.findMany({ distinct: ["segment"], select: { segment: true } }),
+    prisma.emailCampaign.findMany({
+      include: { sentBy: true },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    }),
   ]);
 
   return (
@@ -38,6 +43,36 @@ export default async function EmailPage() {
         cohorts={cohorts.map((c) => ({ id: c.id, name: c.name }))}
         segments={segmentRows.map((r) => r.segment).sort()}
       />
+
+      <section className="space-y-3 pt-4">
+        <h2 className="text-lg font-semibold">Past emails</h2>
+        {campaigns.length === 0 && (
+          <p className="text-sm text-muted-foreground">No emails sent yet.</p>
+        )}
+        <ul className="space-y-2">
+          {campaigns.map((c) => (
+            <li
+              key={c.id}
+              className="rounded-lg border border-brand-black/10 p-4"
+            >
+              <details>
+                <summary className="cursor-pointer list-none">
+                  <span className="font-medium">{c.subject}</span>
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    {new Date(c.createdAt).toLocaleString()} ·{" "}
+                    {c.sentBy?.name ?? "—"} · {c.sent} sent
+                    {c.failed > 0 ? `, ${c.failed} failed` : ""} of{" "}
+                    {c.recipients}
+                  </span>
+                </summary>
+                <pre className="mt-3 whitespace-pre-wrap border-t border-brand-black/10 pt-3 font-sans text-sm">
+                  {c.body}
+                </pre>
+              </details>
+            </li>
+          ))}
+        </ul>
+      </section>
     </div>
   );
 }
