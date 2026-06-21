@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -11,41 +12,50 @@ interface Opt {
   id: string;
   name: string;
 }
+export interface DraftInit {
+  id: string;
+  subject: string;
+  body: string;
+  segment: string;
+  trackId: string;
+  stage: string;
+  cohortId: string;
+}
 
 export function EmailComposer({
   tracks,
   cohorts,
   segments,
+  initial,
 }: {
   tracks: Opt[];
   cohorts: Opt[];
   segments: string[];
+  initial?: DraftInit;
 }) {
-  const [segment, setSegment] = useState("");
-  const [trackId, setTrackId] = useState("");
-  const [stage, setStage] = useState("");
-  const [cohortId, setCohortId] = useState("");
-  const [subject, setSubject] = useState("");
-  const [body, setBody] = useState(
-    "Hi {{firstName}},\n\n",
-  );
+  const router = useRouter();
+  const [draftId, setDraftId] = useState(initial?.id ?? "");
+  const [segment, setSegment] = useState(initial?.segment ?? "");
+  const [trackId, setTrackId] = useState(initial?.trackId ?? "");
+  const [stage, setStage] = useState(initial?.stage ?? "");
+  const [cohortId, setCohortId] = useState(initial?.cohortId ?? "");
+  const [subject, setSubject] = useState(initial?.subject ?? "");
+  const [body, setBody] = useState(initial?.body ?? "Hi {{firstName}},\n\n");
   const [count, setCount] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState("");
   const [error, setError] = useState("");
 
-  const query = () => {
+  const filters = () => ({ segment, trackId, stage, cohortId });
+
+  useEffect(() => {
+    let active = true;
     const p = new URLSearchParams();
     if (segment) p.set("segment", segment);
     if (trackId) p.set("trackId", trackId);
     if (stage) p.set("stage", stage);
     if (cohortId) p.set("cohortId", cohortId);
-    return p.toString();
-  };
-
-  useEffect(() => {
-    let active = true;
-    fetch(`/api/leads?${query()}`)
+    fetch(`/api/leads?${p.toString()}`)
       .then((r) => r.json())
       .then((leads) => {
         if (!active) return;
@@ -58,8 +68,32 @@ export function EmailComposer({
     return () => {
       active = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [segment, trackId, stage, cohortId]);
+
+  async function saveDraft() {
+    setError("");
+    setResult("");
+    setBusy(true);
+    const payload = { subject, body, ...filters() };
+    const res = draftId
+      ? await fetch(`/api/emails/${draftId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+      : await fetch("/api/emails", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+    setBusy(false);
+    if (res.ok) {
+      const d = await res.json();
+      setDraftId(d.id);
+      setResult("Draft saved.");
+      router.refresh();
+    } else setError((await res.json()).error ?? "Failed to save draft");
+  }
 
   async function send() {
     setError("");
@@ -69,19 +103,21 @@ export function EmailComposer({
     const res = await fetch("/api/emails/send", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ segment, trackId, stage, cohortId, subject, body }),
+      body: JSON.stringify({ ...filters(), subject, body, id: draftId || undefined }),
     });
     setBusy(false);
     if (res.ok) {
       const r = await res.json();
       setResult(`Sent ${r.sent}, failed ${r.failed} (to ${r.recipients} recipients).`);
-    } else {
-      setError((await res.json()).error ?? "Send failed");
-    }
+      router.refresh();
+    } else setError((await res.json()).error ?? "Send failed");
   }
 
   return (
     <div className="max-w-2xl space-y-5">
+      {draftId && (
+        <p className="text-sm font-medium text-brand-blue">Editing draft</p>
+      )}
       <div className="rounded-lg border border-brand-black/10 p-4">
         <p className="mb-3 text-sm font-medium">1. Choose who to email</p>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -144,19 +180,28 @@ export function EmailComposer({
         <p className="text-xs text-muted-foreground">
           Personalize with <code>{"{{firstName}}"}</code>,{" "}
           <code>{"{{name}}"}</code>, <code>{"{{track}}"}</code>. Sent from
-          contact@jobmingle.co; replies come back there.
+          JobMingle Academy &lt;contact@jobmingle.co&gt;; replies come back there.
         </p>
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
       {result && <p className="text-sm font-medium text-brand-black">{result}</p>}
 
-      <Button
-        onClick={send}
-        disabled={busy || !subject.trim() || !body.trim() || !count}
-      >
-        {busy ? "Sending…" : `Send to ${count ?? 0}`}
-      </Button>
+      <div className="flex gap-2">
+        <Button
+          onClick={send}
+          disabled={busy || !subject.trim() || !body.trim() || !count}
+        >
+          {busy ? "Working…" : `Send to ${count ?? 0}`}
+        </Button>
+        <Button
+          variant="outline"
+          onClick={saveDraft}
+          disabled={busy || !subject.trim() || !body.trim()}
+        >
+          Save draft
+        </Button>
+      </div>
     </div>
   );
 }

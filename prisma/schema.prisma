@@ -56,6 +56,7 @@ model User {
 // A record of each bulk email sent, so admins can revisit past sends.
 model EmailCampaign {
   id         String   @id @default(uuid())
+  status     String   @default("SENT") // DRAFT | SENT
   subject    String
   body       String
   segment    String?

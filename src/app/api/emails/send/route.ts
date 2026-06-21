@@ -66,20 +66,29 @@ export async function POST(req: NextRequest) {
 
   const result = await sendBulkEmails(messages);
 
-  await prisma.emailCampaign.create({
-    data: {
-      subject: subjectTpl,
-      body: bodyTpl,
-      segment: filters.segment ?? null,
-      trackId: filters.trackId ?? null,
-      stage: filters.stage ?? null,
-      cohortId: filters.cohortId ?? null,
-      recipients: messages.length,
-      sent: result.sent,
-      failed: result.failed,
-      sentById: auth.user.id,
-    },
-  });
+  const data = {
+    status: "SENT",
+    subject: subjectTpl,
+    body: bodyTpl,
+    segment: filters.segment ?? null,
+    trackId: filters.trackId ?? null,
+    stage: filters.stage ?? null,
+    cohortId: filters.cohortId ?? null,
+    recipients: messages.length,
+    sent: result.sent,
+    failed: result.failed,
+    sentById: auth.user.id,
+  };
+
+  // If sending from an existing draft, convert it; otherwise create a record.
+  const draftId = typeof body?.id === "string" ? body.id : "";
+  if (draftId) {
+    await prisma.emailCampaign
+      .update({ where: { id: draftId }, data })
+      .catch(() => prisma.emailCampaign.create({ data }));
+  } else {
+    await prisma.emailCampaign.create({ data });
+  }
 
   return NextResponse.json({ recipients: messages.length, ...result });
 }
