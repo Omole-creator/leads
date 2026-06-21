@@ -9,6 +9,7 @@ import { StageControl } from "@/components/StageControl";
 import { FollowUpChecklist } from "@/components/FollowUpChecklist";
 import { NotesPanel } from "@/components/NotesPanel";
 import { ReassignControl } from "@/components/ReassignControl";
+import { DeleteLeadButton } from "@/components/DeleteLeadButton";
 import { commissionForTrackCost } from "@/lib/commission";
 import { formatNaira } from "@/lib/utils";
 
@@ -104,6 +105,9 @@ export default async function LeadDetailPage({
                 assignedRepId={lead.assignedRepId}
                 reps={reps.map((r) => ({ id: r.id, name: r.name }))}
               />
+              <div className="mt-4 border-t border-brand-black/10 pt-4">
+                <DeleteLeadButton leadId={lead.id} leadName={lead.fullName} />
+              </div>
             </CardContent>
           </Card>
         )}
