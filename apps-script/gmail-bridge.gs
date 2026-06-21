@@ -40,10 +40,12 @@ function processLeadEmails() {
 }
 
 function parseLeadEmail(body) {
+  // Gmail renders the HTML email as "*Label:* value" (asterisks = bold), so we
+  // allow optional asterisks around the label and strip any from the value.
   function getRaw(labels) {
     for (var j = 0; j < labels.length; j++) {
-      var m = body.match(new RegExp(labels[j] + '\\s*:\\s*(.+)'));
-      if (m) return m[1].trim();
+      var m = body.match(new RegExp('\\*?\\s*' + labels[j] + '\\s*:\\s*\\*?\\s*(.+)'));
+      if (m) return m[1].replace(/\*/g, '').trim();
     }
     return '';
   }
