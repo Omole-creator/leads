@@ -26,23 +26,27 @@ export default async function LeadsPage({
     cohortId: sp.cohortId,
     trackId: sp.trackId,
     stage: sp.stage as Stage | undefined,
+    segment: sp.segment,
     repId: isAdmin ? sp.repId : undefined,
   };
 
-  const [leads, cohorts, tracks, reps, unassignedCount] = await Promise.all([
-    listLeads(prisma, user, filters),
-    prisma.cohort.findMany({ orderBy: { startDate: "desc" } }),
-    prisma.track.findMany({ orderBy: { name: "asc" } }),
-    isAdmin
-      ? prisma.user.findMany({
-          where: { role: "SALES_REP" },
-          orderBy: { name: "asc" },
-        })
-      : Promise.resolve([]),
-    isAdmin
-      ? prisma.lead.count({ where: { assignedRepId: null } })
-      : Promise.resolve(0),
-  ]);
+  const [leads, cohorts, tracks, reps, unassignedCount, segmentRows] =
+    await Promise.all([
+      listLeads(prisma, user, filters),
+      prisma.cohort.findMany({ orderBy: { startDate: "desc" } }),
+      prisma.track.findMany({ orderBy: { name: "asc" } }),
+      isAdmin
+        ? prisma.user.findMany({
+            where: { role: "SALES_REP" },
+            orderBy: { name: "asc" },
+          })
+        : Promise.resolve([]),
+      isAdmin
+        ? prisma.lead.count({ where: { assignedRepId: null } })
+        : Promise.resolve(0),
+      prisma.lead.findMany({ distinct: ["segment"], select: { segment: true } }),
+    ]);
+  const segments = segmentRows.map((r) => r.segment).sort();
 
   const colCount = isAdmin ? 7 : 5;
 
@@ -67,6 +71,7 @@ export default async function LeadsPage({
         cohorts={cohorts.map((c) => ({ id: c.id, name: c.name }))}
         tracks={tracks.map((t) => ({ id: t.id, name: t.name }))}
         reps={reps.map((r) => ({ id: r.id, name: r.name }))}
+        segments={segments}
         showRepFilter={isAdmin}
       />
 
@@ -97,6 +102,11 @@ export default async function LeadsPage({
                     {lead.fullName}
                   </Link>
                   <div className="text-xs text-muted-foreground">{lead.phone}</div>
+                  {lead.segment !== "APPLICATION" && (
+                    <span className="mt-1 inline-block rounded-full bg-brand-blue/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-brand-blue">
+                      {lead.segment}
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-3">{lead.track.name}</td>
                 <td className="px-4 py-3">

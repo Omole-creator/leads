@@ -1,12 +1,91 @@
 import type { PrismaClient, Prisma, Stage, FollowUpType } from "@prisma/client";
 import type { SessionUser } from "./permissions";
 import { pickNextRep, type ActiveRep } from "./round-robin";
+import { parseTrackName, parseTrackPrice } from "./ingest";
+import { parseCsv, field } from "./csv";
+
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+export interface ImportResult {
+  created: number;
+  skipped: number;
+}
+
+/**
+ * Bulk-import leads from CSV text into a chosen cohort + segment. Leads are
+ * left UNASSIGNED (admin-only visibility until an admin assigns them). Tracks
+ * are matched by name or auto-created.
+ */
+export async function importLeadsFromCsv(
+  prisma: PrismaClient,
+  csvText: string,
+  cohortName: string,
+  segment: string,
+): Promise<ImportResult> {
+  const rows = parseCsv(csvText);
+  let created = 0;
+  let skipped = 0;
+
+  const cohort =
+    (await prisma.cohort.findUnique({ where: { name: cohortName } })) ??
+    (await prisma.cohort.create({
+      data: {
+        name: cohortName,
+        startDate: new Date(),
+        endDate: new Date(),
+        active: false,
+      },
+    }));
+
+  for (const row of rows) {
+    const fullName = field(row, ["full name", "name", "fullname"]);
+    const email = field(row, ["email", "email address"]);
+    const phone = field(row, ["phone", "whatsapp", "phone number", "mobile"]);
+    const trackRaw = field(row, ["track", "interested skill", "skill", "course"]);
+
+    if (!fullName || !EMAIL_RE.test(email)) {
+      skipped++;
+      continue;
+    }
+
+    const trackName = parseTrackName(trackRaw) || "Undecided";
+    const track =
+      (await prisma.track.findFirst({
+        where: { name: { equals: trackName, mode: "insensitive" } },
+      })) ??
+      (await prisma.track.create({
+        data: { name: trackName, cost: parseTrackPrice(trackRaw), active: true },
+      }));
+
+    await prisma.lead.create({
+      data: {
+        fullName,
+        email,
+        phone: phone || "N/A",
+        trackId: track.id,
+        amountPaid: 0,
+        balanceLeft: Number(track.cost),
+        howFoundUs: segment,
+        segment,
+        startTimeline: cohortName,
+        cohortId: cohort.id,
+        assignedRepId: null,
+        stage: "NEW",
+        activityLog: { create: { action: "IMPORTED", newValue: { segment } } },
+      },
+    });
+    created++;
+  }
+
+  return { created, skipped };
+}
 
 export interface LeadFilters {
   cohortId?: string;
   repId?: string;
   stage?: Stage;
   trackId?: string;
+  segment?: string;
   from?: Date;
   to?: Date;
 }
@@ -25,6 +104,7 @@ export function leadWhere(
   if (f.cohortId) where.cohortId = f.cohortId;
   if (f.stage) where.stage = f.stage;
   if (f.trackId) where.trackId = f.trackId;
+  if (f.segment) where.segment = f.segment;
   if (f.from || f.to) {
     where.createdAt = {};
     if (f.from) where.createdAt.gte = f.from;

@@ -13,11 +13,13 @@ export function LeadsFilterBar({
   cohorts,
   tracks,
   reps,
+  segments,
   showRepFilter,
 }: {
   cohorts: FilterOption[];
   tracks: FilterOption[];
   reps: FilterOption[];
+  segments: string[];
   showRepFilter: boolean;
 }) {
   const router = useRouter();
@@ -62,6 +64,24 @@ export function LeadsFilterBar({
           ))}
         </Select>
       </div>
+      {segments.length > 1 && (
+        <div className="w-44">
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">
+            Segment
+          </label>
+          <Select
+            value={sp.get("segment") ?? ""}
+            onChange={(e) => setParam("segment", e.target.value)}
+          >
+            <option value="">All</option>
+            {segments.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </Select>
+        </div>
+      )}
       {showRepFilter && (
         <FilterSelect
           label="Closer"

@@ -81,6 +81,7 @@ model Lead {
   amountPaid     Decimal  @default(0) @db.Decimal(12, 2)
   balanceLeft    Decimal  @db.Decimal(12, 2)
   howFoundUs     String
+  segment        String   @default("APPLICATION") // APPLICATION | SCHOLARSHIP | IMPORTED | ...
   startTimeline  String
   cohortId       String
   assignedRepId  String?
