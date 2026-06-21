@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser, signOut } from "@/lib/auth";
 import { Logo } from "@/components/Logo";
+import { AppNav } from "@/components/AppNav";
 import { Button } from "@/components/ui/button";
 
 export default async function AppLayout({
@@ -17,19 +17,9 @@ export default async function AppLayout({
     <div className="min-h-screen bg-brand-white text-brand-black">
       <header className="sticky top-0 z-20 border-b-2 border-brand-yellow bg-brand-black text-brand-white">
         <div className="container flex h-14 items-center justify-between gap-4">
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4">
             <Logo />
-            <nav className="hidden items-center gap-1 text-sm font-medium sm:flex">
-              <NavLink href="/dashboard">Overview</NavLink>
-              <NavLink href="/leads">Leads</NavLink>
-              {isAdmin && (
-                <>
-                  <NavLink href="/admin/reps">Closers</NavLink>
-                  <NavLink href="/admin/cohorts">Cohorts</NavLink>
-                  <NavLink href="/admin/tracks">Tracks</NavLink>
-                </>
-              )}
-            </nav>
+            <AppNav isAdmin={isAdmin} />
           </div>
           <form
             action={async () => {
@@ -49,16 +39,5 @@ export default async function AppLayout({
       </header>
       <main className="container py-6">{children}</main>
     </div>
-  );
-}
-
-function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <Link
-      href={href}
-      className="rounded-md px-3 py-1.5 text-brand-white/80 transition-colors hover:bg-brand-white/10 hover:text-brand-yellow"
-    >
-      {children}
-    </Link>
   );
 }

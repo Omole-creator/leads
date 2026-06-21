@@ -10,7 +10,7 @@ var LEAD_QUERY = 'new lead just submitted -label:lead-processed -label:lead-fail
 var EMAIL_RE = /[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/;
 
 function processLeadEmails() {
-  var threads = GmailApp.search(LEAD_QUERY, 0, 30);
+  var threads = GmailApp.search(LEAD_QUERY, 0, 400);
   var processed = getOrCreateLabel(LABEL_PROCESSED);
   var failed = getOrCreateLabel(LABEL_FAILED);
   for (var i = 0; i < threads.length; i++) {
@@ -78,9 +78,20 @@ function debugLatestLead() {
 
 // Run once to clear the lead-failed label so previously-failed emails retry.
 function clearFailedLabel() {
-  var label = GmailApp.getUserLabelByName(LABEL_FAILED);
-  if (!label) { Logger.log('no lead-failed label'); return; }
-  var threads = label.getThreads();
+  removeLabelFromAll(LABEL_FAILED);
+}
+
+// Run to RE-IMPORT every lead email from scratch (removes both labels so the
+// next processLeadEmails run re-sends all of them). Use for a full rebuild.
+function resetAllLabels() {
+  removeLabelFromAll(LABEL_PROCESSED);
+  removeLabelFromAll(LABEL_FAILED);
+}
+
+function removeLabelFromAll(name) {
+  var label = GmailApp.getUserLabelByName(name);
+  if (!label) { Logger.log('no ' + name + ' label'); return; }
+  var threads = label.getThreads(0, 400);
   for (var i = 0; i < threads.length; i++) threads[i].removeLabel(label);
-  Logger.log('Cleared lead-failed from ' + threads.length + ' thread(s)');
+  Logger.log('Removed ' + name + ' from ' + threads.length + ' thread(s)');
 }

@@ -49,6 +49,7 @@ model User {
   notes         Note[]
   activityLog   ActivityLog[]
   followUpsDone FollowUp[]
+  followUpLogs  FollowUpLog[]
 }
 
 model Cohort {
@@ -88,16 +89,31 @@ model Lead {
   createdAt      DateTime @default(now())
   lastActivityAt DateTime @default(now())
 
-  track       Track         @relation(fields: [trackId], references: [id])
-  cohort      Cohort        @relation(fields: [cohortId], references: [id])
-  assignedRep User?         @relation("AssignedRep", fields: [assignedRepId], references: [id])
-  followUps   FollowUp[]
-  notes       Note[]
-  activityLog ActivityLog[]
+  track        Track         @relation(fields: [trackId], references: [id])
+  cohort       Cohort        @relation(fields: [cohortId], references: [id])
+  assignedRep  User?         @relation("AssignedRep", fields: [assignedRepId], references: [id])
+  followUps    FollowUp[]
+  followUpLogs FollowUpLog[]
+  notes        Note[]
+  activityLog  ActivityLog[]
 
   @@index([cohortId])
   @@index([assignedRepId])
   @@index([stage])
+}
+
+// One row per follow-up attempt a closer logs (tap "Reached" / "No answer").
+model FollowUpLog {
+  id        String   @id @default(uuid())
+  leadId    String
+  byId      String?
+  reached   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  lead Lead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  by   User? @relation(fields: [byId], references: [id])
+
+  @@index([leadId])
 }
 
 model FollowUp {

@@ -5,6 +5,9 @@ import { getCurrentUser } from "@/lib/auth";
 import { listLeads, type LeadFilters } from "@/lib/leads";
 import { LeadsFilterBar } from "@/components/LeadsFilterBar";
 import { StageBadge } from "@/components/StageBadge";
+import { AssignUnassignedButton } from "@/components/AssignUnassignedButton";
+import { DeleteLeadButton } from "@/components/DeleteLeadButton";
+import { Button } from "@/components/ui/button";
 import type { Stage } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +29,7 @@ export default async function LeadsPage({
     repId: isAdmin ? sp.repId : undefined,
   };
 
-  const [leads, cohorts, tracks, reps] = await Promise.all([
+  const [leads, cohorts, tracks, reps, unassignedCount] = await Promise.all([
     listLeads(prisma, user, filters),
     prisma.cohort.findMany({ orderBy: { startDate: "desc" } }),
     prisma.track.findMany({ orderBy: { name: "asc" } }),
@@ -36,13 +39,28 @@ export default async function LeadsPage({
           orderBy: { name: "asc" },
         })
       : Promise.resolve([]),
+    isAdmin
+      ? prisma.lead.count({ where: { assignedRepId: null } })
+      : Promise.resolve(0),
   ]);
+
+  const colCount = isAdmin ? 7 : 5;
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Leads</h1>
-        <span className="text-sm text-muted-foreground">{leads.length} total</span>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-muted-foreground">
+            {leads.length} total
+          </span>
+          {isAdmin && <AssignUnassignedButton count={unassignedCount} />}
+          {isAdmin && (
+            <Button asChild size="sm">
+              <Link href="/leads/new">+ Add lead</Link>
+            </Button>
+          )}
+        </div>
       </div>
 
       <LeadsFilterBar
@@ -61,6 +79,8 @@ export default async function LeadsPage({
               <th className="px-4 py-3 font-medium">Stage</th>
               {isAdmin && <th className="px-4 py-3 font-medium">Closer</th>}
               <th className="px-4 py-3 font-medium">Source</th>
+              <th className="px-4 py-3 text-center font-medium">Follow-ups</th>
+              {isAdmin && <th className="px-4 py-3 text-right font-medium">Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -90,12 +110,20 @@ export default async function LeadsPage({
                   </td>
                 )}
                 <td className="px-4 py-3">{lead.howFoundUs}</td>
+                <td className="px-4 py-3 text-center">{lead._count.followUpLogs}</td>
+                {isAdmin && (
+                  <td className="px-4 py-3">
+                    <div className="flex justify-end">
+                      <DeleteLeadButton leadId={lead.id} leadName={lead.fullName} />
+                    </div>
+                  </td>
+                )}
               </tr>
             ))}
             {leads.length === 0 && (
               <tr>
                 <td
-                  colSpan={isAdmin ? 5 : 4}
+                  colSpan={colCount}
                   className="px-4 py-10 text-center text-muted-foreground"
                 >
                   No leads match these filters.

@@ -6,7 +6,7 @@ import { getLeadDetail } from "@/lib/leads";
 import { canAccessLead } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StageControl } from "@/components/StageControl";
-import { FollowUpChecklist } from "@/components/FollowUpChecklist";
+import { FollowUpLogPanel } from "@/components/FollowUpLogPanel";
 import { NotesPanel } from "@/components/NotesPanel";
 import { ReassignControl } from "@/components/ReassignControl";
 import { DeleteLeadButton } from "@/components/DeleteLeadButton";
@@ -87,7 +87,15 @@ export default async function LeadDetailPage({
             <CardTitle>Follow-ups</CardTitle>
           </CardHeader>
           <CardContent>
-            <FollowUpChecklist leadId={lead.id} followUps={lead.followUps} />
+            <FollowUpLogPanel
+              leadId={lead.id}
+              logs={lead.followUpLogs.map((l) => ({
+                id: l.id,
+                reached: l.reached,
+                createdAt: l.createdAt,
+                by: l.by ? { name: l.by.name } : null,
+              }))}
+            />
           </CardContent>
         </Card>
 
