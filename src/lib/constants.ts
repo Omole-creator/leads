@@ -23,8 +23,8 @@ export const STAGES: Stage[] = [
 export const STAGE_LABELS: Record<Stage, string> = {
   NEW: "New",
   CALLED: "Called",
-  CLOSED_WON: "Closed — Won",
-  CLOSED_LOST: "Closed — Lost",
+  CLOSED_WON: "Sales Won",
+  CLOSED_LOST: "Sales Lost",
   NO_ANSWER: "No Answer",
   SILENT: "Silent",
 };

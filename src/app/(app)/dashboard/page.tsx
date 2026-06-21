@@ -43,14 +43,15 @@ export default async function DashboardPage({
 
       {/* KPI row */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-        <MetricCard label="Total Leads" value={String(m.totalLeads)} />
-        <MetricCard label="Open" value={String(m.openLeads)} sub="in pipeline" />
-        <MetricCard label="Sales Won" value={String(m.closedWon)} />
-        <MetricCard label="Sales Lost" value={String(m.closedLost)} />
+        <MetricCard label="Total Leads" value={String(m.totalLeads)} tone="black" />
+        <MetricCard label="Open" value={String(m.openLeads)} sub="in pipeline" tone="white" />
+        <MetricCard label="Sales Won" value={String(m.closedWon)} tone="yellow" />
+        <MetricCard label="Sales Lost" value={String(m.closedLost)} tone="black" />
         <MetricCard
           label="Close Rate"
           value={formatPercent(m.closeRate)}
           sub="won / closed"
+          tone="yellow"
         />
       </div>
 
@@ -61,10 +62,10 @@ export default async function DashboardPage({
           description="Where leads come from"
           data={toBars(m.leadsBySource)}
         />
-        <PieChartCard
+        <BarChartCard
           title="Pipeline by Stage"
           description="How leads are distributed across the pipeline"
-          data={funnelData.filter((d) => d.value > 0)}
+          data={funnelData}
         />
         <BarChartCard
           title="Leads by Track"
