@@ -9,11 +9,10 @@ test("dashboard renders overview, KPIs and charts", async ({ page }) => {
   await page.goto("/dashboard");
   await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
   await expect(page.getByText("Total Leads", { exact: true })).toBeVisible();
-  await expect(page.getByText("Close Rate", { exact: true })).toBeVisible();
-  await expect(page.getByText("Leads by Track", { exact: true })).toBeVisible();
-  await expect(
-    page.getByText("Conversion Rate by Source", { exact: true }),
-  ).toBeVisible();
+  await expect(page.getByText("Total Commission", { exact: true })).toBeVisible();
+  await expect(page.getByText("Leads by Source", { exact: true })).toBeVisible();
+  await expect(page.getByText("Pipeline by Stage", { exact: true })).toBeVisible();
+  await expect(page.getByText("Commission per Closer", { exact: true })).toBeVisible();
 });
 
 test("visual smoke: logo top-left and brand on the header", async ({ page }) => {
