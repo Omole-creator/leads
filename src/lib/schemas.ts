@@ -5,10 +5,11 @@ import { z } from "zod";
 export const ingestSchema = z.object({
   fullName: z.string().min(1).max(200),
   email: z.string().email(),
-  phone: z.string().min(1).max(50),
+  // Optional fields may be blank on the form — defaulted during ingest.
+  phone: z.string().max(50).optional().default(""),
   trackSelected: z.string().min(1), // matched to Track.name case-insensitively
-  startTimeline: z.string().min(1).max(200), // -> Cohort (find or create)
-  howFoundUs: z.string().min(1).max(500),
+  startTimeline: z.string().max(200).optional().default(""), // -> Cohort
+  howFoundUs: z.string().max(500).optional().default(""),
 });
 export type IngestInput = z.infer<typeof ingestSchema>;
 

@@ -50,7 +50,10 @@ export async function ingestLead(
   input: IngestInput,
 ): Promise<IngestResult> {
   const trackName = parseTrackName(input.trackSelected);
-  const cohortName = parseCohortName(input.startTimeline);
+  // Blank optional fields get sensible fallbacks so a lead is never rejected.
+  const cohortName = parseCohortName(input.startTimeline) || "Unspecified";
+  const phone = (input.phone || "").trim() || "N/A";
+  const howFoundUs = (input.howFoundUs || "").trim() || "Unknown";
 
   // Track match by name, case-insensitively. Unknown skills (the form offers
   // options we may not have seeded, e.g. "I'm not sure yet") are auto-created
@@ -95,12 +98,12 @@ export async function ingestLead(
       data: {
         fullName: input.fullName,
         email: input.email,
-        phone: input.phone,
+        phone,
         trackId: track.id,
         amountPaid: 0,
         balanceLeft: trackCost,
-        howFoundUs: input.howFoundUs,
-        startTimeline: input.startTimeline,
+        howFoundUs,
+        startTimeline: input.startTimeline || cohortName,
         cohortId: cohort.id,
         assignedRepId,
         stage: "NEW",

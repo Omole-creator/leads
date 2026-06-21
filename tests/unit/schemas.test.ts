@@ -33,9 +33,23 @@ describe("ingestSchema", () => {
     );
   });
 
-  it("rejects empty startTimeline", () => {
+  it("accepts blank optional fields (source, phone, timeline)", () => {
+    const r = ingestSchema.safeParse({
+      ...valid,
+      startTimeline: "",
+      howFoundUs: "",
+      phone: "",
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it("accepts a payload with optional fields omitted entirely", () => {
     expect(
-      ingestSchema.safeParse({ ...valid, startTimeline: "" }).success,
-    ).toBe(false);
+      ingestSchema.safeParse({
+        fullName: "Jane",
+        email: "jane@example.com",
+        trackSelected: "Cybersecurity",
+      }).success,
+    ).toBe(true);
   });
 });
