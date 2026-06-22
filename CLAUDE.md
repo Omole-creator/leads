@@ -137,9 +137,11 @@ completion rate (enrolled − dropped − deferred ÷ enrolled) + engagement rat
 each student to the right one. Role-based nav in `AppNav`; tutors are redirected
 from `/dashboard` to `/attendance`.
 
-**Commission over time:** `metrics-service` buckets won-deal commission by
-today/week/month/year + a monthly series (current year); shown on the dashboard
-(closers see their own, admins see all).
+**Commission by date range:** `GET /api/commission?from=&to=` returns won-deal
+commission for the range (closer → own `total`; admin → `total` + `perRep`).
+Dashboard has a `CommissionRange` widget (date pickers → amount); the admin
+Closers page has `CloserCommissionPanel` (date range → amount per closer, so the
+admin knows what to pay). The `Total Commission` KPI is unchanged.
 
 **Roles:** DB enum is `SALES_REP`; the UI calls them **"Sales Closers"** /
 "Closers" everywhere. Admin routes live under `/admin/*` (reps=closers, cohorts,
