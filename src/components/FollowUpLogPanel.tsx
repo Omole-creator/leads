@@ -12,26 +12,47 @@ export interface FollowUpLogItem {
   by: { name: string } | null;
 }
 
-const TARGET = 5;
+// Fixed cadence (days after the lead came in / initial contact).
+const SCHEDULE = [
+  { n: 1, day: 3, label: "1st follow-up" },
+  { n: 2, day: 7, label: "2nd follow-up" },
+  { n: 3, day: 14, label: "3rd follow-up" },
+  { n: 4, day: 21, label: "4th follow-up" },
+  { n: 5, day: 29, label: "5th follow-up" },
+];
+const DAY = 24 * 60 * 60 * 1000;
+const fmtDate = (d: Date) =>
+  d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
 export function FollowUpLogPanel({
   leadId,
+  createdAt,
   logs,
 }: {
   leadId: string;
+  createdAt: string | Date;
   logs: FollowUpLogItem[];
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [busy, setBusy] = useState(false);
-  const count = logs.length;
 
-  async function log(reached: boolean) {
+  const base = new Date(createdAt);
+  const asc = [...logs].sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+  );
+  const count = Math.min(asc.length, SCHEDULE.length);
+  const done = count >= SCHEDULE.length;
+  const next = done ? null : SCHEDULE[count];
+  const nextDue = next ? new Date(base.getTime() + next.day * DAY) : null;
+  const overdue = nextDue ? nextDue.getTime() < Date.now() : false;
+
+  async function logFollowUp() {
     setBusy(true);
     const res = await fetch(`/api/leads/${leadId}/followup-logs`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reached }),
+      body: JSON.stringify({ reached: true }),
     });
     setBusy(false);
     if (res.ok) start(() => router.refresh());
@@ -50,87 +71,85 @@ export function FollowUpLogPanel({
 
   return (
     <div className="space-y-4">
-      {/* Progress toward the recommended 5 touches */}
-      <div>
-        <div className="flex items-center justify-between text-sm">
-          <span className="font-medium">
-            {count} follow-up{count === 1 ? "" : "s"} logged
-          </span>
-          <span className="text-muted-foreground">
-            {Math.min(count, TARGET)} / {TARGET} target
-          </span>
-        </div>
-        <div className="mt-2 flex gap-1.5">
-          {Array.from({ length: Math.max(TARGET, count) }).map((_, i) => (
+      <div className="flex items-center justify-between text-sm">
+        <span className="font-medium">{count} of 5 follow-ups done</span>
+        <div className="flex gap-1.5">
+          {SCHEDULE.map((s, i) => (
             <span
-              key={i}
+              key={s.n}
+              title={`${s.label} (Day ${s.day})`}
               className={cn(
-                "h-2 flex-1 rounded-full",
-                i < count ? "bg-brand-yellow" : "bg-brand-black/10",
+                "h-2.5 w-2.5 rounded-full",
+                i < count ? "bg-brand-yellow" : "bg-brand-black/15",
               )}
             />
           ))}
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">
-          Tip: most deals close after 4–5 follow-ups. Tap a button each time you
-          reach out.
+      </div>
+
+      {/* The single advancing action button */}
+      {next ? (
+        <Button
+          className="w-full bg-brand-yellow text-brand-black hover:brightness-95"
+          disabled={disabled}
+          onClick={logFollowUp}
+        >
+          Mark {next.label} done
+          <span className="ml-1 font-normal">
+            · due {nextDue ? fmtDate(nextDue) : ""}
+          </span>
+        </Button>
+      ) : (
+        <div className="rounded-md bg-brand-black px-4 py-2 text-center text-sm font-medium text-brand-white">
+          ✓ All 5 follow-ups completed
+        </div>
+      )}
+      {next && (
+        <p className="text-xs text-muted-foreground">
+          {overdue ? (
+            <span className="font-medium text-brand-red">Overdue — </span>
+          ) : (
+            "Scheduled for "
+          )}
+          Day {next.day} (
+          {nextDue ? nextDue.toLocaleDateString() : ""}). Press the button once
+          you&apos;ve reached out; it advances to the next one automatically.
         </p>
-      </div>
+      )}
 
-      {/* One tap per follow-up */}
-      <div className="flex gap-2">
-        <Button
-          className="flex-1 bg-brand-yellow text-brand-black hover:brightness-95"
-          disabled={disabled}
-          onClick={() => log(true)}
-        >
-          ✅ Reached
-        </Button>
-        <Button
-          variant="outline"
-          className="flex-1"
-          disabled={disabled}
-          onClick={() => log(false)}
-        >
-          ❌ No answer
-        </Button>
-      </div>
-
-      {/* History */}
+      {/* The schedule with done dates (admin & closer can see all 5) */}
       <ul className="space-y-1.5">
-        {logs.map((l, idx) => (
-          <li
-            key={l.id}
-            className="flex items-center justify-between rounded-md border border-brand-black/10 px-3 py-2 text-sm"
-          >
-            <span className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-muted-foreground">
-                #{logs.length - idx}
+        {SCHEDULE.map((s, i) => {
+          const doneAt = asc[i]?.createdAt;
+          const due = new Date(base.getTime() + s.day * DAY);
+          const isNext = i === count && !done;
+          return (
+            <li
+              key={s.n}
+              className={cn(
+                "flex items-center justify-between rounded-md border px-3 py-2 text-sm",
+                doneAt
+                  ? "border-brand-yellow/40 bg-brand-yellow/10"
+                  : isNext
+                    ? "border-brand-black/30"
+                    : "border-brand-black/10",
+              )}
+            >
+              <span className="flex items-center gap-2">
+                <span className="font-medium">{s.label}</span>
+                <span className="text-xs text-muted-foreground">Day {s.day}</span>
               </span>
-              <span
-                className={cn(
-                  "rounded-full px-2 py-0.5 text-xs font-medium",
-                  l.reached
-                    ? "bg-brand-yellow text-brand-black"
-                    : "bg-brand-red/10 text-brand-red",
-                )}
-              >
-                {l.reached ? "Reached" : "No answer"}
+              <span className="text-xs text-muted-foreground">
+                {doneAt
+                  ? `✓ done ${new Date(doneAt).toLocaleDateString()}`
+                  : `due ${fmtDate(due)}`}
               </span>
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {l.by?.name ?? "—"} · {new Date(l.createdAt).toLocaleString()}
-            </span>
-          </li>
-        ))}
-        {logs.length === 0 && (
-          <li className="text-sm text-muted-foreground">
-            No follow-ups yet — tap a button above after your first outreach.
-          </li>
-        )}
+            </li>
+          );
+        })}
       </ul>
 
-      {logs.length > 0 && (
+      {count > 0 && (
         <button
           onClick={undo}
           disabled={disabled}

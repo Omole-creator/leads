@@ -89,6 +89,7 @@ export default async function LeadDetailPage({
           <CardContent>
             <FollowUpLogPanel
               leadId={lead.id}
+              createdAt={lead.createdAt}
               logs={lead.followUpLogs.map((l) => ({
                 id: l.id,
                 reached: l.reached,
