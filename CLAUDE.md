@@ -125,6 +125,22 @@ active:true} })` (run via `tsx` with `.env.local` sourced).
 **Mobile:** the leads list renders as a table on `sm+` and **stacked cards** on
 mobile (`sm:hidden`/`hidden sm:block`); nav is a hamburger (`AppNav`).
 
+**Tutors & attendance** (`src/lib/students.ts`): `Role.TUTOR`; a tutor owns
+track(s) via `Track.tutorId`. Winning a deal (`updateStage` → CLOSED_WON) enrolls
+the lead as a student (`studentTrackId` = its track, `studentStatus` ACTIVE) →
+routed to that track's tutor. Tutors see **only attendance** (`/attendance`,
+`/attendance/[trackId]`): pick a class date, mark Present/Absent per active
+student (upsert, unique `[leadId,date]`). Admin `/admin/attendance` shows
+completion rate (enrolled − dropped − deferred ÷ enrolled) + engagement rate
+(present ÷ marks) per track, and manages student status + track reassignment
+(`/api/students/[id]`). Frontend/Backend/Fullstack = separate tracks; admin moves
+each student to the right one. Role-based nav in `AppNav`; tutors are redirected
+from `/dashboard` to `/attendance`.
+
+**Commission over time:** `metrics-service` buckets won-deal commission by
+today/week/month/year + a monthly series (current year); shown on the dashboard
+(closers see their own, admins see all).
+
 **Roles:** DB enum is `SALES_REP`; the UI calls them **"Sales Closers"** /
 "Closers" everywhere. Admin routes live under `/admin/*` (reps=closers, cohorts,
 tracks, import).
