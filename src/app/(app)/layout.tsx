@@ -14,7 +14,7 @@ export default async function AppLayout({
 
   return (
     <div className="min-h-screen bg-brand-white text-brand-black">
-      <header className="sticky top-0 z-20 border-b-2 border-brand-yellow bg-brand-black text-brand-white">
+      <header className="sticky top-0 z-20 border-b-2 border-brand-yellow bg-brand-black text-brand-white print:hidden">
         <div className="container flex h-14 items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <Logo />

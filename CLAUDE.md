@@ -163,6 +163,14 @@ per track for the chosen cohort, lists students, and manages status + track
 reassignment (`/api/students/[id]`). `BarChartCard` pins the numeric axis to
 `[0,1]` for `format="percent"` so all-zero rate data doesn't auto-scale to a
 nonsensical 0–400%.
+
+**Grant report** (`/admin/report`): a print-to-PDF, admin-only **training
+outcomes** report (cohort-selectable via `CohortFilter`) for grant applications —
+header (logo + cohort + generated date), summary KPIs, and a per-track outcomes
+table with totals. `PrintButton` calls `window.print()`; the app header is
+`print:hidden` (in `(app)/layout.tsx`) and the page's controls are `print:hidden`
+so the PDF is just the report. No reviewer login needed — export the PDF and send
+it.
 Frontend/Backend/Fullstack = separate tracks; admin moves each student to the
 right one. Role-based nav in `AppNav`; tutors are redirected from `/dashboard` to
 `/attendance`.

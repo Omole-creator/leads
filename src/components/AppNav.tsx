@@ -26,6 +26,7 @@ export function AppNav({ role }: { role: "ADMIN" | "SALES_REP" | "TUTOR" }) {
                 { href: "/admin/reps", label: "Closers" },
                 { href: "/admin/tutors", label: "Tutors" },
                 { href: "/admin/attendance", label: "Attendance" },
+                { href: "/admin/report", label: "Report" },
                 { href: "/admin/cohorts", label: "Cohorts" },
                 { href: "/admin/tracks", label: "Tracks" },
                 { href: "/admin/import", label: "Import" },
