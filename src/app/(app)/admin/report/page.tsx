@@ -26,13 +26,30 @@ export default async function GrantReportPage({
       ? "All cohorts"
       : (cohorts.find((c) => c.id === cohortValue)?.name ?? "All cohorts");
 
-  const [stats, marks] = await Promise.all([
+  const leadWhere = cohortId ? { cohortId } : {};
+  const [stats, marks, applicantLeads] = await Promise.all([
     attendanceStats(prisma, cohortId),
     prisma.attendance.findMany({
       where: { ...(cohortId ? { lead: { cohortId } } : {}) },
       select: { present: true },
     }),
+    prisma.lead.findMany({
+      where: leadWhere,
+      select: { track: { select: { name: true } } },
+    }),
   ]);
+
+  // Reach & demand: how many people applied and for which programs.
+  const applicants = applicantLeads.length;
+  const demandMap = new Map<string, number>();
+  for (const l of applicantLeads) {
+    const name = l.track?.name ?? "Unknown";
+    demandMap.set(name, (demandMap.get(name) ?? 0) + 1);
+  }
+  const demandByTrack = [...demandMap.entries()]
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count);
+  const tracksInDemand = demandByTrack.length;
 
   const enrolled = stats.reduce((n, s) => n + s.students, 0);
   const active = stats.reduce((n, s) => n + s.active, 0);
@@ -42,6 +59,7 @@ export default async function GrantReportPage({
   const completionRate = enrolled === 0 ? 0 : completed / enrolled;
   const present = marks.filter((m) => m.present).length;
   const engagementRate = marks.length === 0 ? 0 : present / marks.length;
+  const conversionRate = applicants === 0 ? 0 : enrolled / applicants;
 
   const generatedOn = new Date().toLocaleDateString("en-GB", {
     day: "numeric",
@@ -49,13 +67,17 @@ export default async function GrantReportPage({
     year: "numeric",
   });
 
-  const summary: { label: string; value: string }[] = [
-    { label: "Students enrolled", value: String(enrolled) },
+  const reachKpis: { label: string; value: string }[] = [
+    { label: "Applicants", value: String(applicants) },
+    { label: "Enrolled students", value: String(enrolled) },
+    { label: "Conversion (enrolled ÷ applicants)", value: formatPercent(conversionRate) },
+    { label: "Programs in demand", value: String(tracksInDemand) },
+  ];
+  const outcomeKpis: { label: string; value: string }[] = [
     { label: "Currently active", value: String(active) },
     { label: "Completed", value: String(completed) },
     { label: "Completion rate", value: formatPercent(completionRate) },
     { label: "Attendance (engagement)", value: formatPercent(engagementRate) },
-    { label: "Tracks delivered", value: String(stats.length) },
   ];
 
   return (
@@ -102,9 +124,51 @@ export default async function GrantReportPage({
         </header>
 
         <section>
-          <h2 className="mb-3 text-base font-semibold">Summary</h2>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {summary.map((s) => (
+          <h2 className="mb-3 text-base font-semibold">Reach &amp; demand</h2>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {reachKpis.map((s) => (
+              <div
+                key={s.label}
+                className="rounded-lg border border-brand-black/15 p-4"
+              >
+                <p className="text-2xl font-bold">{s.value}</p>
+                <p className="text-xs text-muted-foreground">{s.label}</p>
+              </div>
+            ))}
+          </div>
+          {demandByTrack.length > 0 && (
+            <div className="mt-4">
+              <p className="mb-2 text-sm font-medium">Applicants by program</p>
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="border-y border-brand-black/15 text-left">
+                    <th className="py-2 pr-2 font-medium">Program / track</th>
+                    <th className="py-2 pl-2 text-center font-medium">Applicants</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {demandByTrack.map((d) => (
+                    <tr key={d.name} className="border-b border-brand-black/10">
+                      <td className="py-2 pr-2">{d.name}</td>
+                      <td className="py-2 pl-2 text-center">{d.count}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-brand-black/30 font-semibold">
+                    <td className="py-2 pr-2">Total applicants</td>
+                    <td className="py-2 pl-2 text-center">{applicants}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+        </section>
+
+        <section>
+          <h2 className="mb-3 text-base font-semibold">Training outcomes</h2>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {outcomeKpis.map((s) => (
               <div
                 key={s.label}
                 className="rounded-lg border border-brand-black/15 p-4"
@@ -185,9 +249,10 @@ export default async function GrantReportPage({
 
         <footer className="border-t border-brand-black/15 pt-3 text-xs text-muted-foreground">
           <p>
-            Completion = students marked Completed ÷ enrolled. Attendance
-            (engagement) = present marks ÷ total attendance marks recorded.
-            Figures cover {cohortName.toLowerCase()}.
+            Conversion = enrolled students ÷ applicants. Completion = students
+            marked Completed ÷ enrolled. Attendance (engagement) = present marks ÷
+            total attendance marks recorded. Demand reflects each applicant&apos;s
+            program of interest. Figures cover {cohortName.toLowerCase()}.
           </p>
         </footer>
       </article>
