@@ -73,65 +73,62 @@ export async function ingestLead(
 
   const trackCost = Number(track.cost);
 
-  const { lead, rep } = await prisma.$transaction(async (tx) => {
-    // Find or create the cohort from the form's Start Timeline.
-    const cohort =
-      (await tx.cohort.findUnique({ where: { name: cohortName } })) ??
-      (await tx.cohort.create({
-        data: {
-          name: cohortName,
-          startDate: new Date(),
-          endDate: new Date(),
-          active: false,
-        },
-      }));
-
-    // Round-robin over active reps (least-recently-assigned).
-    const activeReps = await tx.user.findMany({
-      where: { role: "SALES_REP", active: true },
-      select: { id: true, lastAssignedAt: true },
-      orderBy: { createdAt: "asc" },
-    });
-    const assignedRepId = pickNextRep(activeReps as ActiveRep[]);
-
-    const lead = await tx.lead.create({
+  // Sequential (no interactive transaction) so this works over the Supabase
+  // transaction pooler used in serverless. Find or create the cohort.
+  const cohort =
+    (await prisma.cohort.findUnique({ where: { name: cohortName } })) ??
+    (await prisma.cohort.create({
       data: {
-        fullName: input.fullName,
-        email: input.email,
-        phone,
-        trackId: track.id,
-        amountPaid: 0,
-        balanceLeft: trackCost,
-        howFoundUs,
-        startTimeline: input.startTimeline || cohortName,
-        cohortId: cohort.id,
-        assignedRepId,
-        stage: "NEW",
-        followUps: {
-          create: FOLLOW_UP_TYPES.map((type) => ({ type, done: false })),
-        },
-        activityLog: {
-          create: {
-            action: "LEAD_CREATED",
-            newValue: { stage: "NEW", assignedRepId },
-          },
+        name: cohortName,
+        startDate: new Date(),
+        endDate: new Date(),
+        active: false,
+      },
+    }));
+
+  // Round-robin over active reps (least-recently-assigned).
+  const activeReps = await prisma.user.findMany({
+    where: { role: "SALES_REP", active: true },
+    select: { id: true, lastAssignedAt: true },
+    orderBy: { createdAt: "asc" },
+  });
+  const assignedRepId = pickNextRep(activeReps as ActiveRep[]);
+
+  const lead = await prisma.lead.create({
+    data: {
+      fullName: input.fullName,
+      email: input.email,
+      phone,
+      trackId: track.id,
+      amountPaid: 0,
+      balanceLeft: trackCost,
+      howFoundUs,
+      startTimeline: input.startTimeline || cohortName,
+      cohortId: cohort.id,
+      assignedRepId,
+      stage: "NEW",
+      followUps: {
+        create: FOLLOW_UP_TYPES.map((type) => ({ type, done: false })),
+      },
+      activityLog: {
+        create: {
+          action: "LEAD_CREATED",
+          newValue: { stage: "NEW", assignedRepId },
         },
       },
-    });
-
-    if (assignedRepId) {
-      await tx.user.update({
-        where: { id: assignedRepId },
-        data: { lastAssignedAt: new Date() },
-      });
-    }
-
-    const rep = assignedRepId
-      ? await tx.user.findUnique({ where: { id: assignedRepId } })
-      : null;
-
-    return { lead, rep };
+    },
   });
+
+  if (assignedRepId) {
+    await prisma.user.update({
+      where: { id: assignedRepId },
+      data: { lastAssignedAt: new Date() },
+    });
+  }
+
+  const rep = assignedRepId
+    ? await prisma.user.findUnique({ where: { id: assignedRepId } })
+    : null;
 
   // Fire-and-forget notification (does not throw).
   if (rep) {
