@@ -161,11 +161,17 @@ export async function updateStage(
 ) {
   const existing = await prisma.lead.findUniqueOrThrow({ where: { id } });
   const closedAt = stage === "CLOSED_WON" ? new Date() : existing.closedAt;
+  // Winning a deal enrolls the lead as a student → routes to that track's tutor.
+  const enroll =
+    stage === "CLOSED_WON" && !existing.studentTrackId
+      ? { studentTrackId: existing.trackId, studentStatus: "ACTIVE" }
+      : {};
   return prisma.lead.update({
     where: { id },
     data: {
       stage,
       closedAt: CLOSED_STAGES.includes(stage) ? closedAt ?? new Date() : null,
+      ...enroll,
       lastActivityAt: new Date(),
       activityLog: {
         create: {

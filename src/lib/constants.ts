@@ -20,6 +20,14 @@ export const STAGES: Stage[] = [
   "SILENT",
 ];
 
+export const STUDENT_STATUSES = [
+  "ACTIVE",
+  "COMPLETED",
+  "DEFERRED",
+  "DROPPED",
+] as const;
+export type StudentStatus = (typeof STUDENT_STATUSES)[number];
+
 export const STAGE_LABELS: Record<Stage, string> = {
   NEW: "New",
   CALLED: "Called",

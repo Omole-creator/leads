@@ -19,6 +19,7 @@ export default async function DashboardPage({
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  if (user.role === "TUTOR") redirect("/attendance");
   const isAdmin = user.role === "ADMIN";
   const sp = await searchParams;
 
@@ -62,6 +63,19 @@ export default async function DashboardPage({
         />
       </div>
 
+      {/* Commission over time */}
+      <div>
+        <h2 className="mb-2 text-lg font-semibold">
+          {isAdmin ? "Commission" : "My commission"} over time
+        </h2>
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <MetricCard label="Today" value={formatNaira(m.commissionToday)} tone="yellow" />
+          <MetricCard label="This Week" value={formatNaira(m.commissionWeek)} tone="black" />
+          <MetricCard label="This Month" value={formatNaira(m.commissionMonth)} tone="yellow" />
+          <MetricCard label="This Year" value={formatNaira(m.commissionYear)} tone="black" />
+        </div>
+      </div>
+
       {/* Charts: a mix of pie + bar */}
       <div className="grid gap-4 lg:grid-cols-2">
         <PieChartCard
@@ -74,6 +88,13 @@ export default async function DashboardPage({
           description="How leads are distributed across the pipeline"
           data={funnelData}
           colors={STAGE_BAR_COLORS}
+        />
+        <BarChartCard
+          title={`Commission by Month (${new Date().getFullYear()})`}
+          description="Earnings on won deals per month"
+          data={m.commissionByMonth}
+          format="naira"
+          barColor="#FFD400"
         />
         <BarChartCard
           title="Leads by Track"

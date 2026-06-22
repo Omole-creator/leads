@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { formatNaira } from "@/lib/utils";
 
@@ -12,9 +13,16 @@ export interface TrackRow {
   name: string;
   cost: number;
   active: boolean;
+  tutorId: string | null;
 }
 
-export function TracksManager({ tracks }: { tracks: TrackRow[] }) {
+export function TracksManager({
+  tracks,
+  tutors,
+}: {
+  tracks: TrackRow[];
+  tutors: { id: string; name: string }[];
+}) {
   const router = useRouter();
   const [, start] = useTransition();
   const [name, setName] = useState("");
@@ -78,6 +86,7 @@ export function TracksManager({ tracks }: { tracks: TrackRow[] }) {
             <tr>
               <th className="px-4 py-3 font-medium">Track</th>
               <th className="px-4 py-3 font-medium">Cost</th>
+              <th className="px-4 py-3 font-medium">Tutor</th>
               <th className="px-4 py-3 font-medium">Status</th>
               <th className="px-4 py-3 text-right font-medium">Actions</th>
             </tr>
@@ -87,6 +96,22 @@ export function TracksManager({ tracks }: { tracks: TrackRow[] }) {
               <tr key={t.id} className="border-t border-brand-black/5">
                 <td className="px-4 py-3 font-medium">{t.name}</td>
                 <td className="px-4 py-3">{formatNaira(t.cost)}</td>
+                <td className="px-4 py-3">
+                  <Select
+                    className="h-8 w-40 text-xs"
+                    value={t.tutorId ?? ""}
+                    onChange={(e) =>
+                      patch(t.id, { tutorId: e.target.value || null })
+                    }
+                  >
+                    <option value="">— No tutor —</option>
+                    {tutors.map((tu) => (
+                      <option key={tu.id} value={tu.id}>
+                        {tu.name}
+                      </option>
+                    ))}
+                  </Select>
+                </td>
                 <td className="px-4 py-3">
                   {t.active ? (
                     <Badge className="border-green-200 bg-green-50 text-green-700">

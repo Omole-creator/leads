@@ -9,6 +9,10 @@ export function isAdmin(user: SessionUser | null | undefined): boolean {
   return user?.role === "ADMIN";
 }
 
+export function isTutor(user: SessionUser | null | undefined): boolean {
+  return user?.role === "TUTOR";
+}
+
 /** A rep may read/act on a lead only if they own it; admins may act on any. */
 export function canAccessLead(
   user: SessionUser | null | undefined,

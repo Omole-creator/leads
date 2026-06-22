@@ -11,23 +11,28 @@ interface NavItem {
   label: string;
 }
 
-export function AppNav({ isAdmin }: { isAdmin: boolean }) {
+export function AppNav({ role }: { role: "ADMIN" | "SALES_REP" | "TUTOR" }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
-  const items: NavItem[] = [
-    { href: "/dashboard", label: "Overview" },
-    { href: "/leads", label: "Leads" },
-    ...(isAdmin
-      ? [
-          { href: "/admin/reps", label: "Closers" },
-          { href: "/admin/cohorts", label: "Cohorts" },
-          { href: "/admin/tracks", label: "Tracks" },
-          { href: "/admin/import", label: "Import" },
-          { href: "/admin/email", label: "Email" },
-        ]
-      : []),
-  ];
+  const items: NavItem[] =
+    role === "TUTOR"
+      ? [{ href: "/attendance", label: "Attendance" }]
+      : [
+          { href: "/dashboard", label: "Overview" },
+          { href: "/leads", label: "Leads" },
+          ...(role === "ADMIN"
+            ? [
+                { href: "/admin/reps", label: "Closers" },
+                { href: "/admin/tutors", label: "Tutors" },
+                { href: "/admin/attendance", label: "Attendance" },
+                { href: "/admin/cohorts", label: "Cohorts" },
+                { href: "/admin/tracks", label: "Tracks" },
+                { href: "/admin/import", label: "Import" },
+                { href: "/admin/email", label: "Email" },
+              ]
+            : []),
+        ];
 
   const linkClass = (href: string) =>
     cn(

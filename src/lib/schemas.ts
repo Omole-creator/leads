@@ -48,7 +48,7 @@ export const reassignSchema = z.object({
 export const repCreateSchema = z.object({
   name: z.string().min(1).max(100),
   email: z.string().email(),
-  role: z.enum(["ADMIN", "SALES_REP"]).default("SALES_REP"),
+  role: z.enum(["ADMIN", "SALES_REP", "TUTOR"]).default("SALES_REP"),
 });
 
 export const repUpdateSchema = z.object({
@@ -81,4 +81,18 @@ export const trackUpdateSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   cost: z.number().nonnegative().optional(),
   active: z.boolean().optional(),
+  tutorId: z.string().nullable().optional(),
+});
+
+export const studentUpdateSchema = z.object({
+  studentStatus: z.enum(["ACTIVE", "COMPLETED", "DEFERRED", "DROPPED"]).optional(),
+  studentTrackId: z.string().nullable().optional(),
+});
+
+export const attendanceSchema = z.object({
+  trackId: z.string().min(1),
+  date: z.coerce.date(),
+  marks: z.array(
+    z.object({ leadId: z.string().min(1), present: z.boolean() }),
+  ),
 });

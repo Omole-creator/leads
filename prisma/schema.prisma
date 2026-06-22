@@ -15,6 +15,7 @@ datasource db {
 enum Role {
   ADMIN
   SALES_REP
+  TUTOR
 }
 
 enum Stage {
@@ -45,12 +46,14 @@ model User {
   lastAssignedAt DateTime?
   createdAt      DateTime @default(now())
 
-  assignedLeads Lead[]        @relation("AssignedRep")
-  notes         Note[]
-  activityLog   ActivityLog[]
-  followUpsDone FollowUp[]
-  followUpLogs  FollowUpLog[]
+  assignedLeads  Lead[]          @relation("AssignedRep")
+  notes          Note[]
+  activityLog    ActivityLog[]
+  followUpsDone  FollowUp[]
+  followUpLogs   FollowUpLog[]
   emailCampaigns EmailCampaign[]
+  tracksTutored  Track[]         @relation("TrackTutor")
+  attendanceTaken Attendance[]
 }
 
 // A record of each bulk email sent, so admins can revisit past sends.
@@ -84,12 +87,34 @@ model Cohort {
 }
 
 model Track {
-  id     String  @id @default(uuid())
-  name   String  @unique
-  cost   Decimal @db.Decimal(12, 2)
-  active Boolean @default(true)
+  id      String  @id @default(uuid())
+  name    String  @unique
+  cost    Decimal @db.Decimal(12, 2)
+  active  Boolean @default(true)
+  tutorId String?
 
-  leads Lead[]
+  tutor        User?        @relation("TrackTutor", fields: [tutorId], references: [id])
+  leads        Lead[]       @relation("LeadInterestTrack")
+  studentLeads Lead[]       @relation("LeadStudentTrack")
+  attendance   Attendance[]
+}
+
+// One attendance mark per student (won lead) per class date.
+model Attendance {
+  id        String   @id @default(uuid())
+  leadId    String
+  trackId   String
+  date      DateTime
+  present   Boolean
+  byId      String?
+  createdAt DateTime @default(now())
+
+  lead  Lead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  track Track @relation(fields: [trackId], references: [id])
+  by    User? @relation(fields: [byId], references: [id])
+
+  @@unique([leadId, date])
+  @@index([trackId])
 }
 
 model Lead {
@@ -107,12 +132,16 @@ model Lead {
   assignedRepId  String?
   stage          Stage    @default(NEW)
   closedAt       DateTime?
+  studentStatus  String   @default("ACTIVE") // ACTIVE | DROPPED | DEFERRED | COMPLETED
+  studentTrackId String?  // track used for tutoring/attendance (set when won)
   createdAt      DateTime @default(now())
   lastActivityAt DateTime @default(now())
 
-  track        Track         @relation(fields: [trackId], references: [id])
+  track        Track         @relation("LeadInterestTrack", fields: [trackId], references: [id])
+  studentTrack Track?        @relation("LeadStudentTrack", fields: [studentTrackId], references: [id])
   cohort       Cohort        @relation(fields: [cohortId], references: [id])
   assignedRep  User?         @relation("AssignedRep", fields: [assignedRepId], references: [id])
+  attendance   Attendance[]
   followUps    FollowUp[]
   followUpLogs FollowUpLog[]
   notes        Note[]

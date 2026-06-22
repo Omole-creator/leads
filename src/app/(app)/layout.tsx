@@ -11,7 +11,6 @@ export default async function AppLayout({
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  const isAdmin = user.role === "ADMIN";
 
   return (
     <div className="min-h-screen bg-brand-white text-brand-black">
@@ -19,7 +18,7 @@ export default async function AppLayout({
         <div className="container flex h-14 items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <Logo />
-            <AppNav isAdmin={isAdmin} />
+            <AppNav role={user.role} />
           </div>
           <form
             action={async () => {

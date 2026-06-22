@@ -28,6 +28,11 @@ export interface DashboardMetrics {
   closedLost: number;
   openLeads: number;
   totalCommission: number;
+  commissionToday: number;
+  commissionWeek: number;
+  commissionMonth: number;
+  commissionYear: number;
+  commissionByMonth: NamedValue[];
   leadsByTrack: NamedCount[];
   leadsBySource: NamedCount[];
   leadsByCohort: NamedCount[];
@@ -134,6 +139,30 @@ export async function computeDashboardMetrics(
   const commissionOf = (rs: Row[]) =>
     rs.reduce((s, r) => s + commissionEarned(r.stage, r.trackCost), 0);
 
+  // Commission over time (won deals, bucketed by closedAt).
+  const now = new Date();
+  const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const dow = (now.getDay() + 6) % 7; // Monday = 0
+  const startWeek = new Date(startToday.getTime() - dow * 86400000);
+  const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startYear = new Date(now.getFullYear(), 0, 1);
+  const wonWithDate = rows.filter((r) => r.stage === "CLOSED_WON" && r.closedAt);
+  const commSince = (from: Date) =>
+    wonWithDate
+      .filter((r) => r.closedAt! >= from)
+      .reduce((s, r) => s + commissionEarned(r.stage, r.trackCost), 0);
+  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const commissionByMonth: NamedValue[] = MONTHS.map((label, m) => ({
+    label,
+    value: wonWithDate
+      .filter(
+        (r) =>
+          r.closedAt!.getFullYear() === now.getFullYear() &&
+          r.closedAt!.getMonth() === m,
+      )
+      .reduce((s, r) => s + commissionEarned(r.stage, r.trackCost), 0),
+  }));
+
   return {
     totalLeads: rows.length,
     funnel: funnel(forMetrics),
@@ -143,6 +172,11 @@ export async function computeDashboardMetrics(
     closedLost,
     openLeads: rows.length - closedWon - closedLost,
     totalCommission: commissionOf(rows),
+    commissionToday: commSince(startToday),
+    commissionWeek: commSince(startWeek),
+    commissionMonth: commSince(startMonth),
+    commissionYear: commSince(startYear),
+    commissionByMonth,
     leadsByTrack: namedCount(byTrack),
     leadsBySource: namedCount(bySource),
     leadsByCohort: namedCount(byCohort),

@@ -16,7 +16,10 @@ export async function PATCH(
     return NextResponse.json({ error: "Validation failed" }, { status: 400 });
   }
 
-  const track = await prisma.track.update({ where: { id }, data: parsed.data });
+  const data = { ...parsed.data };
+  if (data.tutorId === "") data.tutorId = null; // "none" selection
+
+  const track = await prisma.track.update({ where: { id }, data });
   return NextResponse.json(track);
 }
 
