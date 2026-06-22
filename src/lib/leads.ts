@@ -287,12 +287,23 @@ export async function removeLastFollowUpLog(
   return last;
 }
 
+/** Where clause for unassigned leads matching optional list filters. */
+export function unassignedWhere(f: LeadFilters = {}): Prisma.LeadWhereInput {
+  const where: Prisma.LeadWhereInput = { assignedRepId: null };
+  if (f.cohortId) where.cohortId = f.cohortId;
+  if (f.trackId) where.trackId = f.trackId;
+  if (f.stage) where.stage = f.stage;
+  if (f.segment) where.segment = f.segment;
+  return where;
+}
+
 /**
- * Round-robin assign every unassigned lead to the active closers, oldest leads
- * first. Returns how many were assigned. Admin-only (caller enforces).
+ * Round-robin assign unassigned leads (optionally limited to the given filters)
+ * to active closers, oldest first. Returns how many were assigned. Admin-only.
  */
 export async function distributeUnassignedLeads(
   prisma: PrismaClient,
+  filters: LeadFilters = {},
 ): Promise<number> {
   const reps = await prisma.user.findMany({
     where: { role: "SALES_REP", active: true },
@@ -302,7 +313,7 @@ export async function distributeUnassignedLeads(
   if (reps.length === 0) return 0;
 
   const unassigned = await prisma.lead.findMany({
-    where: { assignedRepId: null },
+    where: unassignedWhere(filters),
     select: { id: true },
     orderBy: { createdAt: "asc" },
   });

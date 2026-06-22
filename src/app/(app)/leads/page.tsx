@@ -2,11 +2,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { listLeads, type LeadFilters } from "@/lib/leads";
+import { listLeads, unassignedWhere, type LeadFilters } from "@/lib/leads";
 import { LeadsFilterBar } from "@/components/LeadsFilterBar";
 import { StageBadge } from "@/components/StageBadge";
 import { AssignUnassignedButton } from "@/components/AssignUnassignedButton";
 import { DeleteLeadButton } from "@/components/DeleteLeadButton";
+import { ReassignControl } from "@/components/ReassignControl";
 import { Button } from "@/components/ui/button";
 import type { Stage } from "@prisma/client";
 
@@ -42,11 +43,22 @@ export default async function LeadsPage({
           })
         : Promise.resolve([]),
       isAdmin
-        ? prisma.lead.count({ where: { assignedRepId: null } })
+        ? prisma.lead.count({
+            where: unassignedWhere({
+              cohortId: sp.cohortId,
+              trackId: sp.trackId,
+              stage: sp.stage as Stage | undefined,
+              segment: sp.segment,
+            }),
+          })
         : Promise.resolve(0),
       prisma.lead.findMany({ distinct: ["segment"], select: { segment: true } }),
     ]);
   const segments = segmentRows.map((r) => r.segment).sort();
+  const repOptions = reps.map((r) => ({ id: r.id, name: r.name }));
+  const filterActive = Boolean(
+    sp.cohortId || sp.trackId || sp.stage || sp.segment,
+  );
 
   const colCount = isAdmin ? 7 : 5;
 
@@ -58,7 +70,12 @@ export default async function LeadsPage({
           <span className="text-sm text-muted-foreground">
             {leads.length} total
           </span>
-          {isAdmin && <AssignUnassignedButton count={unassignedCount} />}
+          {isAdmin && (
+            <AssignUnassignedButton
+              count={unassignedCount}
+              filtered={filterActive}
+            />
+          )}
           {isAdmin && (
             <Button asChild size="sm">
               <Link href="/leads/new">+ Add lead</Link>
@@ -114,9 +131,13 @@ export default async function LeadsPage({
                 </td>
                 {isAdmin && (
                   <td className="px-4 py-3">
-                    {lead.assignedRep?.name ?? (
-                      <span className="text-muted-foreground">Unassigned</span>
-                    )}
+                    <div className="w-40">
+                      <ReassignControl
+                        leadId={lead.id}
+                        assignedRepId={lead.assignedRepId}
+                        reps={repOptions}
+                      />
+                    </div>
                   </td>
                 )}
                 <td className="px-4 py-3">{lead.howFoundUs}</td>
