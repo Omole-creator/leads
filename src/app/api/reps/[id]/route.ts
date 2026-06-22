@@ -28,6 +28,16 @@ export async function DELETE(
   if ("response" in auth) return auth.response;
   const { id } = await params;
 
+  // Never delete an admin via this endpoint — that can lock everyone out.
+  const target = await prisma.user.findUnique({ where: { id } });
+  if (!target) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (target.role === "ADMIN") {
+    return NextResponse.json(
+      { error: "Admins can't be deleted here." },
+      { status: 403 },
+    );
+  }
+
   // Their leads become UNASSIGNED (admin's pool) but keep ALL history — stage,
   // follow-up counts, notes, activity stay on the lead. The admin then
   // reassigns to another closer, who picks up exactly where this one left off.

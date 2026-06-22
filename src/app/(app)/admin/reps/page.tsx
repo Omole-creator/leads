@@ -10,7 +10,12 @@ export default async function AdminRepsPage() {
   if (!user) redirect("/login");
   if (user.role !== "ADMIN") redirect("/dashboard");
 
-  const reps = await prisma.user.findMany({ orderBy: { name: "asc" } });
+  // Only list closers here — admins are not shown so they can't be deleted by
+  // accident (that would lock everyone out).
+  const reps = await prisma.user.findMany({
+    where: { role: "SALES_REP" },
+    orderBy: { name: "asc" },
+  });
 
   return (
     <div className="space-y-5">
