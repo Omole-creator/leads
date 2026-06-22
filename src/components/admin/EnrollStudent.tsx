@@ -1,14 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 
 interface Lead {
   id: string;
   fullName: string;
-  cohort: string | null;
+  email: string;
 }
 
 export function EnrollStudent({
@@ -21,8 +22,29 @@ export function EnrollStudent({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [busy, setBusy] = useState(false);
+  const [query, setQuery] = useState("");
   const [leadId, setLeadId] = useState("");
+  const [open, setOpen] = useState(false);
   const [trackId, setTrackId] = useState("");
+
+  // Type a name to filter; show only the name (no cohort suffix).
+  const matches = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    return leads
+      .filter(
+        (l) =>
+          l.fullName.toLowerCase().includes(q) ||
+          l.email.toLowerCase().includes(q),
+      )
+      .slice(0, 8);
+  }, [query, leads]);
+
+  function pick(l: Lead) {
+    setLeadId(l.id);
+    setQuery(l.fullName);
+    setOpen(false);
+  }
 
   async function enroll() {
     if (!leadId || !trackId) return;
@@ -35,6 +57,7 @@ export function EnrollStudent({
     setBusy(false);
     if (res.ok) {
       setLeadId("");
+      setQuery("");
       setTrackId("");
       start(() => router.refresh());
     }
@@ -50,25 +73,45 @@ export function EnrollStudent({
 
   return (
     <div className="flex flex-wrap items-end gap-2">
-      <label className="block">
+      <label className="relative block">
         <span className="mb-1 block text-xs font-medium text-muted-foreground">
           Lead
         </span>
-        <Select
-          aria-label="Lead"
+        <Input
+          type="text"
           className="w-60"
-          value={leadId}
+          placeholder="Search by name…"
+          value={query}
+          autoComplete="off"
           disabled={busy || pending}
-          onChange={(e) => setLeadId(e.target.value)}
-        >
-          <option value="">— Select a lead —</option>
-          {leads.map((l) => (
-            <option key={l.id} value={l.id}>
-              {l.fullName}
-              {l.cohort ? ` — ${l.cohort}` : ""}
-            </option>
-          ))}
-        </Select>
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setLeadId("");
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          // Delay so a click on a result registers before the list closes.
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
+        />
+        {open && matches.length > 0 && (
+          <ul className="absolute z-10 mt-1 max-h-64 w-60 overflow-auto rounded-md border border-brand-black/15 bg-white py-1 shadow-lg">
+            {matches.map((l) => (
+              <li key={l.id}>
+                <button
+                  type="button"
+                  className="block w-full px-3 py-2 text-left text-sm hover:bg-brand-yellow/20"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => pick(l)}
+                >
+                  <span className="block font-medium">{l.fullName}</span>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {l.email}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </label>
       <label className="block">
         <span className="mb-1 block text-xs font-medium text-muted-foreground">

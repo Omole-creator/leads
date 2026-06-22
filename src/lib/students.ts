@@ -1,7 +1,36 @@
 import type { PrismaClient } from "@prisma/client";
 
-/** Tracks a tutor owns, with their active-student counts. */
-export async function tutorTracks(prisma: PrismaClient, tutorId: string) {
+/** Cohorts for the attendance filter, newest first, + the active one's id. */
+export async function cohortOptions(prisma: PrismaClient) {
+  const cohorts = await prisma.cohort.findMany({
+    orderBy: [{ startDate: "desc" }, { name: "asc" }],
+    select: { id: true, name: true, active: true },
+  });
+  const active = cohorts.find((c) => c.active) ?? null;
+  return { cohorts, activeId: active?.id ?? null };
+}
+
+/**
+ * Resolve `?cohort=` into a filter + the value the dropdown should show.
+ * - explicit id  → that cohort
+ * - "all"        → no filter (every cohort)
+ * - absent       → default to the active cohort (null filter if none is active)
+ */
+export function resolveCohort(
+  selected: string | undefined,
+  activeId: string | null,
+): { cohortId: string | null; value: string } {
+  if (selected === "all") return { cohortId: null, value: "all" };
+  if (selected) return { cohortId: selected, value: selected };
+  return { cohortId: activeId, value: activeId ?? "all" };
+}
+
+/** Tracks a tutor owns, with their active-student counts (scoped to a cohort). */
+export async function tutorTracks(
+  prisma: PrismaClient,
+  tutorId: string,
+  cohortId?: string | null,
+) {
   const tracks = await prisma.track.findMany({
     where: { tutorId },
     orderBy: { name: "asc" },
@@ -13,6 +42,7 @@ export async function tutorTracks(prisma: PrismaClient, tutorId: string) {
         where: {
           studentTrackId: t.id,
           studentStatus: "ACTIVE",
+          ...(cohortId ? { cohortId } : {}),
         },
       }),
     })),
@@ -23,13 +53,19 @@ export async function tutorTracks(prisma: PrismaClient, tutorId: string) {
  * Active students in a track. A student is any lead assigned to the track for
  * tutoring (`studentTrackId`) and still ACTIVE — won deals enroll automatically,
  * but the admin can also enroll past-cohort/imported leads manually, so this is
- * deliberately NOT gated on stage = CLOSED_WON.
+ * deliberately NOT gated on stage = CLOSED_WON. Optionally scoped to a cohort so
+ * a tutor sees only the selected cohort's class (e.g. July, not April).
  */
-export function activeStudents(prisma: PrismaClient, trackId: string) {
+export function activeStudents(
+  prisma: PrismaClient,
+  trackId: string,
+  cohortId?: string | null,
+) {
   return prisma.lead.findMany({
     where: {
       studentTrackId: trackId,
       studentStatus: "ACTIVE",
+      ...(cohortId ? { cohortId } : {}),
     },
     orderBy: { fullName: "asc" },
     select: { id: true, fullName: true, email: true },
@@ -37,9 +73,13 @@ export function activeStudents(prisma: PrismaClient, trackId: string) {
 }
 
 /** Cumulative attendance per student in a track, across every class date. */
-export async function attendanceTotals(prisma: PrismaClient, trackId: string) {
+export async function attendanceTotals(
+  prisma: PrismaClient,
+  trackId: string,
+  cohortId?: string | null,
+) {
   const rows = await prisma.attendance.findMany({
-    where: { trackId },
+    where: { trackId, ...(cohortId ? { lead: { cohortId } } : {}) },
     select: { leadId: true, present: true },
   });
   const totals: Record<string, { present: number; total: number }> = {};
@@ -82,9 +122,14 @@ export async function attendanceForDate(
   prisma: PrismaClient,
   trackId: string,
   date: Date,
+  cohortId?: string | null,
 ) {
   const rows = await prisma.attendance.findMany({
-    where: { trackId, date: classDay(date) },
+    where: {
+      trackId,
+      date: classDay(date),
+      ...(cohortId ? { lead: { cohortId } } : {}),
+    },
     select: { leadId: true, present: true },
   });
   return Object.fromEntries(rows.map((r) => [r.leadId, r.present]));
@@ -106,9 +151,10 @@ export interface TrackAttendanceStats {
 /** Per-track completion + engagement (attendance) stats for the admin. */
 export async function attendanceStats(
   prisma: PrismaClient,
+  cohortId?: string | null,
 ): Promise<TrackAttendanceStats[]> {
   const tracks = await prisma.track.findMany({
-    where: { studentLeads: { some: {} } },
+    where: { studentLeads: { some: cohortId ? { cohortId } : {} } },
     orderBy: { name: "asc" },
     include: { tutor: true },
   });
@@ -116,7 +162,7 @@ export async function attendanceStats(
   const out: TrackAttendanceStats[] = [];
   for (const t of tracks) {
     const students = await prisma.lead.findMany({
-      where: { studentTrackId: t.id },
+      where: { studentTrackId: t.id, ...(cohortId ? { cohortId } : {}) },
       select: { studentStatus: true },
     });
     const enrolled = students.length;
@@ -126,7 +172,7 @@ export async function attendanceStats(
     const deferred = by("DEFERRED");
 
     const marks = await prisma.attendance.findMany({
-      where: { trackId: t.id },
+      where: { trackId: t.id, ...(cohortId ? { lead: { cohortId } } : {}) },
       select: { present: true },
     });
     const present = marks.filter((m) => m.present).length;

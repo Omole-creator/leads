@@ -130,22 +130,32 @@ track(s) via `Track.tutorId`. **A student = any lead with `studentTrackId` set**
 (NOT gated on stage). Winning a deal (`updateStage` → CLOSED_WON) auto-enrolls the
 lead (`studentTrackId` = its track, `studentStatus` ACTIVE); the admin can also
 **enroll any lead manually** via the "Enroll a student" control on
-`/admin/attendance` (lead + track → `PATCH /api/students/[id]` with
-`studentTrackId`+`studentStatus`) — this is how previous-cohort / imported leads
-that were never marked Won get assigned to a tutor. `activeStudents`,
-`tutorTracks`, and `attendanceStats` all key off `studentTrackId` (+ ACTIVE), not
-CLOSED_WON. Tutors see **only attendance** (`/attendance`, `/attendance/[trackId]`):
-pick a class date, mark Present/Absent per active student (upsert, unique
-`[leadId,date]`, one row per day). The sheet shows each student's **cumulative
-Present/Absent across all dates** (`attendanceTotals`) and is keyed by date
-(`key={dateStr}`) so it reloads that date's saved marks instead of stale state —
-without this, a new date's per-date count looked "stuck at 1". Admin
-`/admin/attendance` shows completion rate (enrolled − dropped − deferred ÷
-enrolled) + engagement rate (present ÷ marks) per track, lists students
-(`CLOSED_WON` OR `studentTrackId` set), and manages status + track reassignment
-(`/api/students/[id]`). Frontend/Backend/Fullstack = separate tracks; admin moves
-each student to the right one. Role-based nav in `AppNav`; tutors are redirected
-from `/dashboard` to `/attendance`.
+`/admin/attendance` (a **searchable name typeahead** — `EnrollStudent` filters by
+name/email and shows the name only, no cohort suffix — + track → `PATCH
+/api/students/[id]` with `studentTrackId`+`studentStatus`) — this is how
+previous-cohort / imported leads that were never marked Won get assigned to a
+tutor. `activeStudents`, `tutorTracks`, and `attendanceStats` all key off
+`studentTrackId` (+ ACTIVE), not CLOSED_WON. Tutors see **only attendance**
+(`/attendance`, `/attendance/[trackId]`): pick a class date, mark Present/Absent
+per active student (upsert, unique `[leadId,date]`, one row per day). The sheet
+shows each student's **cumulative Present/Absent across all dates**
+(`attendanceTotals`) and is keyed by cohort+date so it reloads that date's saved
+marks instead of stale state — without this, a new date's per-date count looked
+"stuck at 1".
+
+**Cohort scoping** keeps classes separate (April students don't bleed into July):
+the take-attendance + admin pages have a `CohortFilter` (`?cohort=<id>`, `all`, or
+default → the **active** cohort). `cohortOptions()` lists cohorts (newest first)
++ the active id; `resolveCohort(selected, activeId)` returns `{cohortId, value}`.
+All the student/attendance queries take an optional `cohortId` (filtering leads by
+`cohortId`, attendance by `lead:{cohortId}`); a won/enrolled lead lands in *its
+lead's* cohort automatically. Admin `/admin/attendance` shows completion rate
+(enrolled − dropped − deferred ÷ enrolled) + engagement rate (present ÷ marks) per
+track for the chosen cohort, lists students (`CLOSED_WON` OR `studentTrackId` set),
+and manages status + track reassignment (`/api/students/[id]`).
+Frontend/Backend/Fullstack = separate tracks; admin moves each student to the
+right one. Role-based nav in `AppNav`; tutors are redirected from `/dashboard` to
+`/attendance`.
 
 **Commission by date range:** `GET /api/commission?from=&to=` returns won-deal
 commission for the range (closer → own `total`; admin → `total` + `perRep`).

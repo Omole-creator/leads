@@ -1,24 +1,38 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { attendanceStats } from "@/lib/students";
+import { attendanceStats, cohortOptions, resolveCohort } from "@/lib/students";
 import { BarChartCard } from "@/components/charts/BarChartCard";
 import { StudentControls } from "@/components/admin/StudentControls";
 import { EnrollStudent } from "@/components/admin/EnrollStudent";
+import { CohortFilter } from "@/components/CohortFilter";
 import { MetricCard } from "@/components/MetricCard";
 import { formatPercent } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminAttendancePage() {
+export default async function AdminAttendancePage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (user.role !== "ADMIN") redirect("/dashboard");
 
+  const sp = await searchParams;
+  const { cohorts, activeId } = await cohortOptions(prisma);
+  const { cohortId, value: cohortValue } = resolveCohort(sp.cohort, activeId);
+
   const [stats, students, tracks, unenrolled] = await Promise.all([
-    attendanceStats(prisma),
+    attendanceStats(prisma, cohortId),
     prisma.lead.findMany({
-      where: { OR: [{ stage: "CLOSED_WON" }, { studentTrackId: { not: null } }] },
+      where: {
+        AND: [
+          { OR: [{ stage: "CLOSED_WON" }, { studentTrackId: { not: null } }] },
+          ...(cohortId ? [{ cohortId }] : []),
+        ],
+      },
       orderBy: { fullName: "asc" },
       select: {
         id: true,
@@ -35,7 +49,7 @@ export default async function AdminAttendancePage() {
       select: {
         id: true,
         fullName: true,
-        cohort: { select: { name: true } },
+        email: true,
       },
     }),
   ]);
@@ -51,12 +65,17 @@ export default async function AdminAttendancePage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Attendance & students</h1>
-        <p className="text-sm text-muted-foreground">
-          Completion = students still enrolled or finished. Engagement = present ÷
-          total attendance marks.
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">Attendance & students</h1>
+          <p className="text-sm text-muted-foreground">
+            Completion = students still enrolled or finished. Engagement = present
+            ÷ total attendance marks.
+          </p>
+        </div>
+        {cohorts.length > 0 && (
+          <CohortFilter cohorts={cohorts} value={cohortValue} />
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -138,7 +157,7 @@ export default async function AdminAttendancePage() {
         <EnrollStudent leads={unenrolled.map((l) => ({
           id: l.id,
           fullName: l.fullName,
-          cohort: l.cohort?.name ?? null,
+          email: l.email,
         }))} tracks={tracks} />
       </section>
 

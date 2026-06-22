@@ -2,8 +2,15 @@ import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { activeStudents, attendanceForDate, attendanceTotals } from "@/lib/students";
+import {
+  activeStudents,
+  attendanceForDate,
+  attendanceTotals,
+  cohortOptions,
+  resolveCohort,
+} from "@/lib/students";
 import { AttendanceSheet } from "@/components/AttendanceSheet";
+import { CohortFilter } from "@/components/CohortFilter";
 
 export const dynamic = "force-dynamic";
 
@@ -31,10 +38,12 @@ export default async function TakeAttendancePage({
 
   const dateStr = sp.date || todayStr();
   const date = new Date(dateStr + "T00:00:00Z");
+  const { cohorts, activeId } = await cohortOptions(prisma);
+  const { cohortId, value: cohortValue } = resolveCohort(sp.cohort, activeId);
   const [students, existing, totals] = await Promise.all([
-    activeStudents(prisma, trackId),
-    attendanceForDate(prisma, trackId, date),
-    attendanceTotals(prisma, trackId),
+    activeStudents(prisma, trackId, cohortId),
+    attendanceForDate(prisma, trackId, date, cohortId),
+    attendanceTotals(prisma, trackId, cohortId),
   ]);
 
   return (
@@ -46,8 +55,11 @@ export default async function TakeAttendancePage({
         ← All classes
       </Link>
       <h1 className="text-2xl font-bold">{track.name} — attendance</h1>
+      {cohorts.length > 0 && (
+        <CohortFilter cohorts={cohorts} value={cohortValue} />
+      )}
       <AttendanceSheet
-        key={dateStr}
+        key={`${cohortValue}:${dateStr}`}
         trackId={trackId}
         date={dateStr}
         students={students.map((s) => ({ id: s.id, fullName: s.fullName }))}

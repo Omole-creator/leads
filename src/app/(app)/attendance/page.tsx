@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { tutorTracks } from "@/lib/students";
+import { cohortOptions, tutorTracks } from "@/lib/students";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +11,8 @@ export default async function AttendanceHome() {
   if (!user) redirect("/login");
   if (user.role !== "TUTOR" && user.role !== "ADMIN") redirect("/dashboard");
 
-  const tracks = await tutorTracks(prisma, user.id);
+  const { activeId } = await cohortOptions(prisma);
+  const tracks = await tutorTracks(prisma, user.id, activeId);
 
   return (
     <div className="space-y-5">
