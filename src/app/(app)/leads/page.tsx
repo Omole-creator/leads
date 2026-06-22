@@ -6,6 +6,7 @@ import { listLeads, unassignedWhere, type LeadFilters } from "@/lib/leads";
 import { LeadsFilterBar } from "@/components/LeadsFilterBar";
 import { StageBadge } from "@/components/StageBadge";
 import { AssignUnassignedButton } from "@/components/AssignUnassignedButton";
+import { BulkAssignControl } from "@/components/BulkAssignControl";
 import { DeleteLeadButton } from "@/components/DeleteLeadButton";
 import { ReassignControl } from "@/components/ReassignControl";
 import { Button } from "@/components/ui/button";
@@ -75,6 +76,9 @@ export default async function LeadsPage({
               count={unassignedCount}
               filtered={filterActive}
             />
+          )}
+          {isAdmin && (
+            <BulkAssignControl count={leads.length} reps={repOptions} />
           )}
           {isAdmin && (
             <Button asChild size="sm">

@@ -154,12 +154,12 @@ model FollowUp {
 model Note {
   id        String   @id @default(uuid())
   leadId    String
-  authorId  String
+  authorId  String?
   body      String
   createdAt DateTime @default(now())
 
-  lead   Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  author User @relation(fields: [authorId], references: [id])
+  lead   Lead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  author User? @relation(fields: [authorId], references: [id])
 }
 
 model ActivityLog {

@@ -28,18 +28,23 @@ export async function DELETE(
   if ("response" in auth) return auth.response;
   const { id } = await params;
 
-  // Only delete a rep with zero historical leads; otherwise deactivate instead.
+  // Their leads become UNASSIGNED (admin's pool) but keep ALL history — stage,
+  // follow-up counts, notes, activity stay on the lead. The admin then
+  // reassigns to another closer, who picks up exactly where this one left off.
   const leadCount = await prisma.lead.count({ where: { assignedRepId: id } });
-  if (leadCount > 0) {
-    return NextResponse.json(
-      {
-        error:
-          "This rep has historical leads. Deactivate them instead of deleting.",
-      },
-      { status: 409 },
-    );
-  }
+  await prisma.lead.updateMany({
+    where: { assignedRepId: id },
+    data: { assignedRepId: null },
+  });
+  // Detach the closer from history records (preserved, just authorless).
+  await prisma.note.updateMany({ where: { authorId: id }, data: { authorId: null } });
+  await prisma.followUpLog.updateMany({ where: { byId: id }, data: { byId: null } });
+  await prisma.followUp.updateMany({
+    where: { completedById: id },
+    data: { completedById: null },
+  });
+  await prisma.activityLog.updateMany({ where: { userId: id }, data: { userId: null } });
 
   await prisma.user.delete({ where: { id } });
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, unassignedLeads: leadCount });
 }

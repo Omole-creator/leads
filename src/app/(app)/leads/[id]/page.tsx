@@ -134,7 +134,7 @@ export default async function LeadDetailPage({
                 id: n.id,
                 body: n.body,
                 createdAt: n.createdAt,
-                author: { name: n.author.name },
+                author: { name: n.author?.name ?? "—" },
               }))}
             />
           </CardContent>
