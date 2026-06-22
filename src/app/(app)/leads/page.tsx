@@ -9,6 +9,7 @@ import { AssignUnassignedButton } from "@/components/AssignUnassignedButton";
 import { BulkAssignControl } from "@/components/BulkAssignControl";
 import { DeleteLeadButton } from "@/components/DeleteLeadButton";
 import { ReassignControl } from "@/components/ReassignControl";
+import { FollowUpQuickButton } from "@/components/FollowUpQuickButton";
 import { Button } from "@/components/ui/button";
 import type { Stage } from "@prisma/client";
 
@@ -96,7 +97,63 @@ export default async function LeadsPage({
         showRepFilter={isAdmin}
       />
 
-      <div className="overflow-x-auto rounded-xl border border-brand-black/10">
+      {/* Mobile: stacked cards (every action included) */}
+      <div className="space-y-3 sm:hidden">
+        {leads.length === 0 && (
+          <p className="py-10 text-center text-sm text-muted-foreground">
+            No leads match these filters.
+          </p>
+        )}
+        {leads.map((lead) => (
+          <div
+            key={lead.id}
+            className="rounded-xl border border-brand-black/10 p-4"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <Link
+                  href={`/leads/${lead.id}`}
+                  className="font-medium hover:underline"
+                >
+                  {lead.fullName}
+                </Link>
+                <div className="text-xs text-muted-foreground">{lead.phone}</div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  {lead.track.name} · {lead.howFoundUs}
+                </div>
+              </div>
+              <StageBadge stage={lead.stage} />
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <FollowUpQuickButton
+                leadId={lead.id}
+                createdAt={lead.createdAt}
+                count={lead._count.followUpLogs}
+              />
+              {lead.segment !== "APPLICATION" && (
+                <span className="rounded-full bg-brand-blue/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-brand-blue">
+                  {lead.segment}
+                </span>
+              )}
+            </div>
+            {isAdmin && (
+              <div className="mt-3 flex items-center gap-2">
+                <div className="flex-1">
+                  <ReassignControl
+                    leadId={lead.id}
+                    assignedRepId={lead.assignedRepId}
+                    reps={repOptions}
+                  />
+                </div>
+                <DeleteLeadButton leadId={lead.id} leadName={lead.fullName} />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop: table */}
+      <div className="hidden overflow-x-auto rounded-xl border border-brand-black/10 sm:block">
         <table className="w-full text-sm">
           <thead className="bg-brand-black/[0.03] text-left">
             <tr>
@@ -145,7 +202,13 @@ export default async function LeadsPage({
                   </td>
                 )}
                 <td className="px-4 py-3">{lead.howFoundUs}</td>
-                <td className="px-4 py-3 text-center">{lead._count.followUpLogs}</td>
+                <td className="px-4 py-3 text-center">
+                  <FollowUpQuickButton
+                    leadId={lead.id}
+                    createdAt={lead.createdAt}
+                    count={lead._count.followUpLogs}
+                  />
+                </td>
                 {isAdmin && (
                   <td className="px-4 py-3">
                     <div className="flex justify-end">

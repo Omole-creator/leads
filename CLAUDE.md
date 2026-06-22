@@ -35,16 +35,23 @@ commands: `set -a && . ./.env.local && set +a && <cmd>`.
 
 ## Database & migrations (Supabase) — READ BEFORE TOUCHING
 
-Prisma needs **two** URLs: `DATABASE_URL` (runtime) + `DIRECT_URL` (migrations).
-Use the **session pooler** host (`...pooler.supabase.com:5432`) for *both* in
-this app — IPv4 and supports the interactive transaction `ingestLead` uses. The
-transaction pooler (`:6543`) breaks interactive transactions; the direct
-`db.<ref>...` host is often IPv6-only/unreachable.
+Prisma needs **two** URLs:
+- **`DATABASE_URL` (runtime) = the TRANSACTION pooler** (`...pooler.supabase.com:6543`)
+  `?pgbouncer=true&connection_limit=1`. Required for Vercel serverless — the
+  *session* pooler (`:5432`) caps at **15 connections** and serverless exhausted
+  it, breaking auth lookups and looping `/dashboard` → login (a real outage).
+- **`DIRECT_URL` (migrations/db push) = the SESSION pooler** (`:5432`). The
+  direct `db.<ref>...` host is often IPv6-only/unreachable.
 
-**Applying schema changes to the live DB: use `npx prisma db push`.** It is safe
-and additive. Migration SQL files under `prisma/migrations/` (0001–0003) exist
-for CI/fresh deploys (`migrate deploy`), but the live Supabase DB is kept in sync
-with `db push`.
+Because the transaction pooler (pgbouncer transaction mode) does **not** support
+interactive transactions, `ingestLead` is written as **sequential writes (no
+`$transaction(async tx => …)`)**. Don't reintroduce an interactive transaction.
+
+**Applying schema changes to the live DB: use `npx prisma db push`.** Safe and
+additive. Migration SQL files under `prisma/migrations/` (0001–0006) exist for
+CI/fresh deploys (`migrate deploy`); the live Supabase DB is kept in sync with
+`db push`. Hand-write each new migration's SQL (don't use `migrate diff` with a
+shadow DB — see the warning below).
 
 ⚠️ **NEVER** run `prisma migrate reset`, and **never** point `prisma migrate diff
 --shadow-database-url` (or any shadow/replay command) at the live `DATABASE_URL`/
@@ -68,9 +75,13 @@ called by both API routes and Server Components:
   log, notifies the closer. Blank optional fields (phone/source/timeline) default
   to N/A/Unknown/Unspecified so a lead is never rejected.
 - `src/lib/leads.ts` — list/detail + mutations: stage, notes, reassign,
-  `addFollowUpLog`/`removeLastFollowUpLog`, `distributeUnassignedLeads`
-  (round-robin all unassigned), `importLeadsFromCsv`. `leadWhere()` scopes
-  closers to their own leads; admins see all.
+  `addFollowUpLog`/`removeLastFollowUpLog`, `distributeUnassignedLeads(filters)`
+  (round-robin, filter-aware), `importLeadsFromCsv`. `leadWhere()` scopes closers
+  to their own leads; admins see all. Bulk assign-to-one-closer via
+  `/api/leads/assign-all`.
+- `src/lib/email.ts` + `email-template.ts` — Resend wrapper. `sendBulkEmails`
+  (batch/100, rate-limited); from = "JobMingle Academy <contact@jobmingle.co>"
+  (`RESEND_FROM_NAME`/`_EMAIL`), reply-to = from.
 - `src/lib/round-robin.ts` — `pickNextRep()` (least-recently-assigned).
 - `src/lib/commission.ts` — closer commission per won deal: **₦20,000 if track
   cost ≥ ₦280,000, else ₦10,000**.
@@ -86,12 +97,27 @@ gates logged-in vs not; **role checks live in pages/routes**. API uses
 expects `AUTH_GOOGLE_ID`).
 
 **Data model** (`prisma/schema.prisma`): `Lead` → Track, Cohort, optional
-assigned User (closer); has `FollowUp[]` (legacy 7-step, created but not shown),
-`FollowUpLog[]` (the live follow-up tracker), `Note[]`, `ActivityLog[]`. Key
-fields: `segment` (APPLICATION | SCHOLARSHIP | IMPORTED | …), `amountPaid`/
-`balanceLeft` (kept but **never shown to users**), `lastAssignedAt` on User.
-Track list seeded from `prisma/tracks.data.ts` (import from there, **not**
-`prisma/seed.ts`, which self-executes).
+assigned User (closer); has `FollowUp[]` (legacy 7-step, unused in UI),
+`FollowUpLog[]` (the live follow-up tracker), `Note[]` (author now optional),
+`ActivityLog[]`. Key fields: `segment` (APPLICATION | SCHOLARSHIP | IMPORTED | …),
+`amountPaid`/`balanceLeft` (kept but **never shown to users**), `lastAssignedAt`
+on User. `EmailCampaign` records every bulk email (status DRAFT|SENT). Track list
+seeded from `prisma/tracks.data.ts` (import from there, **not** `prisma/seed.ts`,
+which self-executes).
+
+**Follow-up cadence:** closers advance one lead through 5 touches due **Day
+3/7/14/21/29** from `lead.createdAt`. A single button (`FollowUpLogPanel` on the
+lead page, `FollowUpQuickButton` on the leads list) shows the next due date
+(red=overdue, amber=due-soon), logs a `FollowUpLog`, and auto-advances. Count
+0→5 is visible to admins on the list.
+
+**Closer deletion is graceful:** deleting a closer un-assigns their leads (admin
+pool) and nulls their authorship on notes/follow-ups/activity — **all lead
+history is preserved**; admin reassigns to a new closer who continues. Stage is
+set via the lead-page Stage dropdown (drives funnel/close-rate/commission).
+
+**Mobile:** the leads list renders as a table on `sm+` and **stacked cards** on
+mobile (`sm:hidden`/`hidden sm:block`); nav is a hamburger (`AppNav`).
 
 **Roles:** DB enum is `SALES_REP`; the UI calls them **"Sales Closers"** /
 "Closers" everywhere. Admin routes live under `/admin/*` (reps=closers, cohorts,
@@ -127,18 +153,24 @@ if that happens). Config (`INGEST_URL`, `INGEST_SECRET`) is inlined at the top.
 - `next.config.mjs` uses `outputFileTracingIncludes` + `serverExternalPackages`
   to bundle the Prisma **query engine** into serverless functions — without it,
   DB pages 500 at runtime while non-DB pages work.
-- Env vars in Vercel: `DATABASE_URL`, `DIRECT_URL` (session pooler), `AUTH_SECRET`
-  + `NEXTAUTH_SECRET`, `INGEST_SHARED_SECRET`, `AUTH_TRUST_HOST=true`,
-  `NEXTAUTH_URL`/`APP_URL` = the live URL, `GOOGLE_CLIENT_ID/SECRET`. **Do NOT set
-  `E2E_TEST_MODE`** in prod.
+- Env vars in Vercel: `DATABASE_URL` (**transaction** pooler `:6543`
+  `?pgbouncer=true&connection_limit=1`), `DIRECT_URL` (**session** pooler `:5432`),
+  `AUTH_SECRET` + `NEXTAUTH_SECRET`, `INGEST_SHARED_SECRET`, `AUTH_TRUST_HOST=true`,
+  `NEXTAUTH_URL`/`APP_URL` = live URL, `GOOGLE_CLIENT_ID/SECRET`, `RESEND_API_KEY`,
+  `RESEND_FROM_EMAIL=contact@jobmingle.co`. **Do NOT set `E2E_TEST_MODE`** in prod.
 
-## Email (Resend) — currently dormant
+## Email (Resend) — live
 
-`src/lib/email.ts` sends the "lead assigned" notification via Resend, but only if
-`RESEND_API_KEY` is set (it isn't yet → silently skipped). Sending requires a
-**verified domain** (planned: subdomain `mail.jobmingle.co`; can't use gmail.com
-or vercel.app). The root domain is also used by Kit — a Resend subdomain won't
-conflict. Bulk/personalized email-by-segment is **not built yet**.
+Domain `jobmingle.co` is verified in Resend; `RESEND_API_KEY`/`RESEND_FROM_EMAIL`
+(`contact@jobmingle.co`) are set in Vercel. Two paths:
+- **Assignment notification** (`sendLeadAssignedEmail`) → the **assigned closer**,
+  fired **only on new ingest** (not on bulk reassign — avoids hundreds of sends).
+- **Bulk personalized** (`/admin/email`): filter by segment/track/stage/cohort,
+  templated `{{firstName}}/{{name}}/{{track}}`, **save draft / edit / send /
+  delete**, full **sent history**. Dedupes by email. Free tier = 100/day, 3000/mo.
+
+Verify deliveries in the **Resend dashboard → Logs**. `jobmingle.co` is also used
+by Kit (email marketing) — they coexist (separate DKIM).
 
 ## Recharts gotchas (cost real debugging time)
 
