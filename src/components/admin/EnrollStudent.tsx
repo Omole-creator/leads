@@ -15,9 +15,11 @@ interface Lead {
 export function EnrollStudent({
   leads,
   tracks,
+  cohortId,
 }: {
   leads: Lead[];
   tracks: { id: string; name: string }[];
+  cohortId: string | null;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -52,7 +54,13 @@ export function EnrollStudent({
     const res = await fetch(`/api/students/${leadId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ studentTrackId: trackId, studentStatus: "ACTIVE" }),
+      body: JSON.stringify({
+        studentTrackId: trackId,
+        studentStatus: "ACTIVE",
+        // Move the lead into the cohort being managed so they actually appear
+        // in that cohort's class (cohort-scoped attendance).
+        ...(cohortId ? { cohortId } : {}),
+      }),
     });
     setBusy(false);
     if (res.ok) {

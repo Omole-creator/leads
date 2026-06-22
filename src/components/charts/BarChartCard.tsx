@@ -56,6 +56,10 @@ export function BarChartCard({
   colors?: string[];
 }) {
   const fmt = FORMATTERS[format];
+  // Rates are 0–100%; pin the numeric axis so all-zero data doesn't auto-scale
+  // to a nonsensical 0–400%. Other formats keep Recharts' auto domain.
+  const numberDomain: [number, number] | undefined =
+    format === "percent" ? [0, 1] : undefined;
 
   return (
     <Card>
@@ -92,7 +96,13 @@ export function BarChartCard({
                     silently drop the category axis. */}
                 <XAxis
                   {...(horizontal
-                    ? { type: "number" as const, tickFormatter: fmt }
+                    ? {
+                        type: "number" as const,
+                        tickFormatter: fmt,
+                        ...(numberDomain
+                          ? { domain: numberDomain, allowDataOverflow: true }
+                          : {}),
+                      }
                     : {
                         type: "category" as const,
                         dataKey: "label",
@@ -112,7 +122,13 @@ export function BarChartCard({
                         interval: 0,
                         tickLine: false,
                       }
-                    : { type: "number" as const, tickFormatter: fmt })}
+                    : {
+                        type: "number" as const,
+                        tickFormatter: fmt,
+                        ...(numberDomain
+                          ? { domain: numberDomain, allowDataOverflow: true }
+                          : {}),
+                      })}
                   fontSize={11}
                 />
                 <Tooltip

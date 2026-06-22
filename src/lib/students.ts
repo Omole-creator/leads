@@ -144,7 +144,7 @@ export interface TrackAttendanceStats {
   completed: number;
   dropped: number;
   deferred: number;
-  completionRate: number; // finished / enrolled
+  completionRate: number; // COMPLETED / enrolled (0% while a class is ongoing)
   engagementRate: number; // present / total marks
 }
 
@@ -186,7 +186,7 @@ export async function attendanceStats(
       completed,
       dropped,
       deferred,
-      completionRate: enrolled === 0 ? 0 : (enrolled - dropped - deferred) / enrolled,
+      completionRate: enrolled === 0 ? 0 : completed / enrolled,
       engagementRate: marks.length === 0 ? 0 : present / marks.length,
     });
   }

@@ -134,8 +134,15 @@ lead (`studentTrackId` = its track, `studentStatus` ACTIVE); the admin can also
 name/email and shows the name only, no cohort suffix — + track → `PATCH
 /api/students/[id]` with `studentTrackId`+`studentStatus`) — this is how
 previous-cohort / imported leads that were never marked Won get assigned to a
-tutor. `activeStudents`, `tutorTracks`, and `attendanceStats` all key off
-`studentTrackId` (+ ACTIVE), not CLOSED_WON. Tutors see **only attendance**
+tutor. **Manual enroll moves the lead into the cohort being managed** (the
+selected cohort, else active) by also setting `cohortId`, so the student actually
+appears in that cohort-scoped class — otherwise an April lead enrolled while
+viewing July silently wouldn't show. Each student row in the admin list has a
+**Remove** button (`StudentControls` → `PATCH {studentTrackId:null}`) that
+un-assigns them from the tutor without touching the status dropdown; lead history
+is kept. `activeStudents`, `tutorTracks`, and `attendanceStats` all key off
+`studentTrackId` (+ ACTIVE), not CLOSED_WON; the admin student list is
+`studentTrackId != null` (+ cohort). Tutors see **only attendance**
 (`/attendance`, `/attendance/[trackId]`): pick a class date, mark Present/Absent
 per active student (upsert, unique `[leadId,date]`, one row per day). The sheet
 shows each student's **cumulative Present/Absent across all dates**
@@ -148,11 +155,14 @@ the take-attendance + admin pages have a `CohortFilter` (`?cohort=<id>`, `all`, 
 default → the **active** cohort). `cohortOptions()` lists cohorts (newest first)
 + the active id; `resolveCohort(selected, activeId)` returns `{cohortId, value}`.
 All the student/attendance queries take an optional `cohortId` (filtering leads by
-`cohortId`, attendance by `lead:{cohortId}`); a won/enrolled lead lands in *its
-lead's* cohort automatically. Admin `/admin/attendance` shows completion rate
-(enrolled − dropped − deferred ÷ enrolled) + engagement rate (present ÷ marks) per
-track for the chosen cohort, lists students (`CLOSED_WON` OR `studentTrackId` set),
-and manages status + track reassignment (`/api/students/[id]`).
+`cohortId`, attendance by `lead:{cohortId}`); a won lead lands in its own cohort
+automatically. Admin `/admin/attendance` shows **completion rate = COMPLETED ÷
+enrolled** (intentionally 0% while a class is ongoing — it is *not* a retention
+rate; drop-outs show in the Dropped column) + engagement rate (present ÷ marks)
+per track for the chosen cohort, lists students, and manages status + track
+reassignment (`/api/students/[id]`). `BarChartCard` pins the numeric axis to
+`[0,1]` for `format="percent"` so all-zero rate data doesn't auto-scale to a
+nonsensical 0–400%.
 Frontend/Backend/Fullstack = separate tracks; admin moves each student to the
 right one. Role-based nav in `AppNav`; tutors are redirected from `/dashboard` to
 `/attendance`.

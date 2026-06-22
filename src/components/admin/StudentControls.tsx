@@ -57,6 +57,18 @@ export function StudentControls({
           </option>
         ))}
       </Select>
+      <button
+        type="button"
+        disabled={pending}
+        onClick={() => {
+          if (confirm("Remove this student from the tutor? Lead history is kept.")) {
+            patch({ studentTrackId: null });
+          }
+        }}
+        className="h-8 rounded-md border border-brand-red/40 px-3 text-xs font-medium text-brand-red hover:bg-brand-red/10 disabled:opacity-50"
+      >
+        Remove
+      </button>
     </div>
   );
 }

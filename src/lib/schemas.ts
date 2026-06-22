@@ -87,6 +87,7 @@ export const trackUpdateSchema = z.object({
 export const studentUpdateSchema = z.object({
   studentStatus: z.enum(["ACTIVE", "COMPLETED", "DEFERRED", "DROPPED"]).optional(),
   studentTrackId: z.string().nullable().optional(),
+  cohortId: z.string().optional(),
 });
 
 export const attendanceSchema = z.object({

@@ -28,10 +28,8 @@ export default async function AdminAttendancePage({
     attendanceStats(prisma, cohortId),
     prisma.lead.findMany({
       where: {
-        AND: [
-          { OR: [{ stage: "CLOSED_WON" }, { studentTrackId: { not: null } }] },
-          ...(cohortId ? [{ cohortId }] : []),
-        ],
+        studentTrackId: { not: null },
+        ...(cohortId ? { cohortId } : {}),
       },
       orderBy: { fullName: "asc" },
       select: {
@@ -54,14 +52,14 @@ export default async function AdminAttendancePage({
     }),
   ]);
 
+  // New enrollments join the cohort being managed (selected, else active).
+  const enrollCohort = cohorts.find((c) => c.id === (cohortId ?? activeId)) ?? null;
+
   const totalStudents = students.length;
   const active = students.filter((s) => s.studentStatus === "ACTIVE").length;
   const completed = students.filter((s) => s.studentStatus === "COMPLETED").length;
   const overallCompletion =
-    totalStudents === 0
-      ? 0
-      : students.filter((s) => ["ACTIVE", "COMPLETED"].includes(s.studentStatus))
-          .length / totalStudents;
+    totalStudents === 0 ? 0 : completed / totalStudents;
 
   return (
     <div className="space-y-6">
@@ -69,8 +67,8 @@ export default async function AdminAttendancePage({
         <div>
           <h1 className="text-2xl font-bold">Attendance & students</h1>
           <p className="text-sm text-muted-foreground">
-            Completion = students still enrolled or finished. Engagement = present
-            ÷ total attendance marks.
+            Completion = students marked Completed ÷ enrolled (0% while a class is
+            ongoing). Engagement = present ÷ total attendance marks.
           </p>
         </div>
         {cohorts.length > 0 && (
@@ -151,14 +149,23 @@ export default async function AdminAttendancePage({
           <h2 className="text-lg font-semibold">Enroll a student</h2>
           <p className="text-sm text-muted-foreground">
             Add any lead (including previous-cohort or imported leads) onto a track
-            — they&apos;re routed to that track&apos;s tutor for attendance.
+            — they&apos;re routed to that track&apos;s tutor for attendance and
+            join the{" "}
+            <span className="font-medium text-brand-black">
+              {enrollCohort?.name ?? "current"}
+            </span>{" "}
+            cohort.
           </p>
         </div>
-        <EnrollStudent leads={unenrolled.map((l) => ({
-          id: l.id,
-          fullName: l.fullName,
-          email: l.email,
-        }))} tracks={tracks} />
+        <EnrollStudent
+          leads={unenrolled.map((l) => ({
+            id: l.id,
+            fullName: l.fullName,
+            email: l.email,
+          }))}
+          tracks={tracks}
+          cohortId={enrollCohort?.id ?? null}
+        />
       </section>
 
       {/* Student management */}
