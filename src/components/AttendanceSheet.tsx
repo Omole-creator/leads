@@ -16,11 +16,13 @@ export function AttendanceSheet({
   date,
   students,
   existing,
+  totals,
 }: {
   trackId: string;
   date: string; // yyyy-mm-dd
   students: Student[];
   existing: Record<string, boolean>;
+  totals: Record<string, { present: number; total: number }>;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -91,12 +93,18 @@ export function AttendanceSheet({
         <ul className="space-y-2">
           {students.map((s) => {
             const present = marks[s.id];
+            const t = totals[s.id] ?? { present: 0, total: 0 };
             return (
               <li
                 key={s.id}
                 className="flex items-center justify-between gap-3 rounded-lg border border-brand-black/10 p-3"
               >
-                <span className="min-w-0 truncate font-medium">{s.fullName}</span>
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{s.fullName}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Present {t.present} · Absent {t.total - t.present} (all classes)
+                  </p>
+                </div>
                 <div className="flex shrink-0 gap-2">
                   <button
                     onClick={() => setMarks((m) => ({ ...m, [s.id]: true }))}

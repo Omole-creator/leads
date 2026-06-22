@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { activeStudents, attendanceForDate } from "@/lib/students";
+import { activeStudents, attendanceForDate, attendanceTotals } from "@/lib/students";
 import { AttendanceSheet } from "@/components/AttendanceSheet";
 
 export const dynamic = "force-dynamic";
@@ -31,9 +31,10 @@ export default async function TakeAttendancePage({
 
   const dateStr = sp.date || todayStr();
   const date = new Date(dateStr + "T00:00:00Z");
-  const [students, existing] = await Promise.all([
+  const [students, existing, totals] = await Promise.all([
     activeStudents(prisma, trackId),
     attendanceForDate(prisma, trackId, date),
+    attendanceTotals(prisma, trackId),
   ]);
 
   return (
@@ -46,10 +47,12 @@ export default async function TakeAttendancePage({
       </Link>
       <h1 className="text-2xl font-bold">{track.name} — attendance</h1>
       <AttendanceSheet
+        key={dateStr}
         trackId={trackId}
         date={dateStr}
         students={students.map((s) => ({ id: s.id, fullName: s.fullName }))}
         existing={existing}
+        totals={totals}
       />
     </div>
   );

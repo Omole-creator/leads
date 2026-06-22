@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { attendanceStats } from "@/lib/students";
 import { BarChartCard } from "@/components/charts/BarChartCard";
 import { StudentControls } from "@/components/admin/StudentControls";
+import { EnrollStudent } from "@/components/admin/EnrollStudent";
 import { MetricCard } from "@/components/MetricCard";
 import { formatPercent } from "@/lib/utils";
 
@@ -14,10 +15,10 @@ export default async function AdminAttendancePage() {
   if (!user) redirect("/login");
   if (user.role !== "ADMIN") redirect("/dashboard");
 
-  const [stats, students, tracks] = await Promise.all([
+  const [stats, students, tracks, unenrolled] = await Promise.all([
     attendanceStats(prisma),
     prisma.lead.findMany({
-      where: { stage: "CLOSED_WON" },
+      where: { OR: [{ stage: "CLOSED_WON" }, { studentTrackId: { not: null } }] },
       orderBy: { fullName: "asc" },
       select: {
         id: true,
@@ -28,6 +29,15 @@ export default async function AdminAttendancePage() {
       },
     }),
     prisma.track.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.lead.findMany({
+      where: { studentTrackId: null },
+      orderBy: [{ fullName: "asc" }],
+      select: {
+        id: true,
+        fullName: true,
+        cohort: { select: { name: true } },
+      },
+    }),
   ]);
 
   const totalStudents = students.length;
@@ -115,6 +125,22 @@ export default async function AdminAttendancePage() {
           </tbody>
         </table>
       </div>
+
+      {/* Enroll a lead as a student (e.g. previous-cohort / imported leads) */}
+      <section className="space-y-3 rounded-xl border border-brand-black/10 p-4">
+        <div>
+          <h2 className="text-lg font-semibold">Enroll a student</h2>
+          <p className="text-sm text-muted-foreground">
+            Add any lead (including previous-cohort or imported leads) onto a track
+            — they&apos;re routed to that track&apos;s tutor for attendance.
+          </p>
+        </div>
+        <EnrollStudent leads={unenrolled.map((l) => ({
+          id: l.id,
+          fullName: l.fullName,
+          cohort: l.cohort?.name ?? null,
+        }))} tracks={tracks} />
+      </section>
 
       {/* Student management */}
       <section className="space-y-3">

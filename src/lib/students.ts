@@ -12,7 +12,6 @@ export async function tutorTracks(prisma: PrismaClient, tutorId: string) {
       activeCount: await prisma.lead.count({
         where: {
           studentTrackId: t.id,
-          stage: "CLOSED_WON",
           studentStatus: "ACTIVE",
         },
       }),
@@ -20,17 +19,36 @@ export async function tutorTracks(prisma: PrismaClient, tutorId: string) {
   );
 }
 
-/** Active students (won leads) in a track. */
+/**
+ * Active students in a track. A student is any lead assigned to the track for
+ * tutoring (`studentTrackId`) and still ACTIVE — won deals enroll automatically,
+ * but the admin can also enroll past-cohort/imported leads manually, so this is
+ * deliberately NOT gated on stage = CLOSED_WON.
+ */
 export function activeStudents(prisma: PrismaClient, trackId: string) {
   return prisma.lead.findMany({
     where: {
       studentTrackId: trackId,
-      stage: "CLOSED_WON",
       studentStatus: "ACTIVE",
     },
     orderBy: { fullName: "asc" },
     select: { id: true, fullName: true, email: true },
   });
+}
+
+/** Cumulative attendance per student in a track, across every class date. */
+export async function attendanceTotals(prisma: PrismaClient, trackId: string) {
+  const rows = await prisma.attendance.findMany({
+    where: { trackId },
+    select: { leadId: true, present: true },
+  });
+  const totals: Record<string, { present: number; total: number }> = {};
+  for (const r of rows) {
+    const t = (totals[r.leadId] ??= { present: 0, total: 0 });
+    t.total++;
+    if (r.present) t.present++;
+  }
+  return totals;
 }
 
 /** Normalize a date to midnight UTC so one class day upserts cleanly. */
@@ -90,7 +108,7 @@ export async function attendanceStats(
   prisma: PrismaClient,
 ): Promise<TrackAttendanceStats[]> {
   const tracks = await prisma.track.findMany({
-    where: { studentLeads: { some: { stage: "CLOSED_WON" } } },
+    where: { studentLeads: { some: {} } },
     orderBy: { name: "asc" },
     include: { tutor: true },
   });
@@ -98,7 +116,7 @@ export async function attendanceStats(
   const out: TrackAttendanceStats[] = [];
   for (const t of tracks) {
     const students = await prisma.lead.findMany({
-      where: { studentTrackId: t.id, stage: "CLOSED_WON" },
+      where: { studentTrackId: t.id },
       select: { studentStatus: true },
     });
     const enrolled = students.length;
