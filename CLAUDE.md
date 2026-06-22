@@ -116,6 +116,12 @@ pool) and nulls their authorship on notes/follow-ups/activity — **all lead
 history is preserved**; admin reassigns to a new closer who continues. Stage is
 set via the lead-page Stage dropdown (drives funnel/close-rate/commission).
 
+**Admins are protected:** the Closers page lists only `SALES_REP`, and the reps
+DELETE API refuses `ADMIN` targets. Sign-in requires an active DB user, so 0
+admins = total lockout ("access denied"). If ever locked out, re-add an admin
+directly: `prisma.user.upsert({ where:{email}, create/update:{role:"ADMIN",
+active:true} })` (run via `tsx` with `.env.local` sourced).
+
 **Mobile:** the leads list renders as a table on `sm+` and **stacked cards** on
 mobile (`sm:hidden`/`hidden sm:block`); nav is a hamburger (`AppNav`).
 
