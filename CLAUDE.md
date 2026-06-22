@@ -126,13 +126,23 @@ active:true} })` (run via `tsx` with `.env.local` sourced).
 mobile (`sm:hidden`/`hidden sm:block`); nav is a hamburger (`AppNav`).
 
 **Tutors & attendance** (`src/lib/students.ts`): `Role.TUTOR`; a tutor owns
-track(s) via `Track.tutorId`. Winning a deal (`updateStage` → CLOSED_WON) enrolls
-the lead as a student (`studentTrackId` = its track, `studentStatus` ACTIVE) →
-routed to that track's tutor. Tutors see **only attendance** (`/attendance`,
-`/attendance/[trackId]`): pick a class date, mark Present/Absent per active
-student (upsert, unique `[leadId,date]`). Admin `/admin/attendance` shows
-completion rate (enrolled − dropped − deferred ÷ enrolled) + engagement rate
-(present ÷ marks) per track, and manages student status + track reassignment
+track(s) via `Track.tutorId`. **A student = any lead with `studentTrackId` set**
+(NOT gated on stage). Winning a deal (`updateStage` → CLOSED_WON) auto-enrolls the
+lead (`studentTrackId` = its track, `studentStatus` ACTIVE); the admin can also
+**enroll any lead manually** via the "Enroll a student" control on
+`/admin/attendance` (lead + track → `PATCH /api/students/[id]` with
+`studentTrackId`+`studentStatus`) — this is how previous-cohort / imported leads
+that were never marked Won get assigned to a tutor. `activeStudents`,
+`tutorTracks`, and `attendanceStats` all key off `studentTrackId` (+ ACTIVE), not
+CLOSED_WON. Tutors see **only attendance** (`/attendance`, `/attendance/[trackId]`):
+pick a class date, mark Present/Absent per active student (upsert, unique
+`[leadId,date]`, one row per day). The sheet shows each student's **cumulative
+Present/Absent across all dates** (`attendanceTotals`) and is keyed by date
+(`key={dateStr}`) so it reloads that date's saved marks instead of stale state —
+without this, a new date's per-date count looked "stuck at 1". Admin
+`/admin/attendance` shows completion rate (enrolled − dropped − deferred ÷
+enrolled) + engagement rate (present ÷ marks) per track, lists students
+(`CLOSED_WON` OR `studentTrackId` set), and manages status + track reassignment
 (`/api/students/[id]`). Frontend/Backend/Fullstack = separate tracks; admin moves
 each student to the right one. Role-based nav in `AppNav`; tutors are redirected
 from `/dashboard` to `/attendance`.
