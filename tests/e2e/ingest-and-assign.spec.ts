@@ -27,7 +27,10 @@ test("ingest endpoint creates a lead that appears in the admin leads list", asyn
   const ctx = await browser.newContext({ storageState: adminState });
   const page = await ctx.newPage();
   await page.goto("/leads");
-  await expect(page.getByText(`E2E Lead ${unique}`)).toBeVisible();
+  // The leads list renders the name twice (table on sm+, stacked card on
+  // mobile, one hidden via CSS), so scope to the first match to avoid a
+  // strict-mode violation.
+  await expect(page.getByText(`E2E Lead ${unique}`).first()).toBeVisible();
   await ctx.close();
 });
 
