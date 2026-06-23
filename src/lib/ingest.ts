@@ -32,6 +32,28 @@ export function parseCohortName(raw: string): string {
   return raw.trim();
 }
 
+/**
+ * Find an existing track by name, ignoring surrounding whitespace AND case, or
+ * create it (with a trimmed name). A plain `equals` match misses near-duplicates
+ * like "Backend Development" vs "Backend Development " (a stray trailing space in
+ * older data), which silently spawned duplicate tracks. Comparing normalized
+ * names in JS avoids that; new tracks are always stored trimmed.
+ */
+export async function findOrCreateTrack(
+  prisma: PrismaClient,
+  rawName: string,
+  cost: number,
+) {
+  const name = rawName.trim();
+  const norm = name.toLowerCase();
+  const all = await prisma.track.findMany();
+  const match = all.find((t) => t.name.trim().toLowerCase() === norm);
+  return (
+    match ??
+    (await prisma.track.create({ data: { name, cost, active: true } }))
+  );
+}
+
 export interface IngestResult {
   id: string;
   assignedRepId: string | null;
@@ -59,17 +81,11 @@ export async function ingestLead(
   // options we may not have seeded, e.g. "I'm not sure yet") are auto-created
   // from the email so no lead is ever dropped; admins can tidy tracks later.
   const safeTrackName = trackName || input.trackSelected.trim();
-  const track =
-    (await prisma.track.findFirst({
-      where: { name: { equals: safeTrackName, mode: "insensitive" } },
-    })) ??
-    (await prisma.track.create({
-      data: {
-        name: safeTrackName,
-        cost: parseTrackPrice(input.trackSelected),
-        active: true,
-      },
-    }));
+  const track = await findOrCreateTrack(
+    prisma,
+    safeTrackName,
+    parseTrackPrice(input.trackSelected),
+  );
 
   const trackCost = Number(track.cost);
 

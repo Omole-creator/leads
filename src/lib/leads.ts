@@ -1,7 +1,7 @@
 import type { PrismaClient, Prisma, Stage, FollowUpType } from "@prisma/client";
 import type { SessionUser } from "./permissions";
 import { pickNextRep, type ActiveRep } from "./round-robin";
-import { parseTrackName, parseTrackPrice } from "./ingest";
+import { parseTrackName, parseTrackPrice, findOrCreateTrack } from "./ingest";
 import { parseCsv, field } from "./csv";
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
@@ -49,13 +49,11 @@ export async function importLeadsFromCsv(
     }
 
     const trackName = parseTrackName(trackRaw) || "Undecided";
-    const track =
-      (await prisma.track.findFirst({
-        where: { name: { equals: trackName, mode: "insensitive" } },
-      })) ??
-      (await prisma.track.create({
-        data: { name: trackName, cost: parseTrackPrice(trackRaw), active: true },
-      }));
+    const track = await findOrCreateTrack(
+      prisma,
+      trackName,
+      parseTrackPrice(trackRaw),
+    );
 
     await prisma.lead.create({
       data: {

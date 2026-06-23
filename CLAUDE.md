@@ -194,8 +194,13 @@ tracks, import).
   track cost only on the admin Tracks page.
 - **Closers see only leads assigned to them.** Imported/scholarship leads are left
   **unassigned** → admin-only by default.
-- **Track matched by name** (case-insensitive); unknown → auto-created with the
-  ₦ price parsed from the email. Seeded price wins for known tracks.
+- **Track matched by name via `findOrCreateTrack`** (`ingest.ts`, shared by
+  ingest + CSV import): compares names **trimmed + case-insensitively** in JS, so
+  stray surrounding whitespace (e.g. legacy `"Backend Development "`) no longer
+  spawns a duplicate track; unknown → auto-created with a **trimmed** name and the
+  ₦ price parsed from the email. Seeded price wins for known tracks. (A plain
+  Prisma `equals` match previously created near-duplicates; a one-off script
+  merged the existing dupes into the tutored tracks.)
 - **Follow-up tracker** = `FollowUpLog` (closer taps "Reached"/"No answer",
   target 5). The old 7-step `FollowUp` checklist is no longer rendered.
 
