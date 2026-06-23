@@ -14,6 +14,8 @@ test("admin can add a new sales closer", async ({ page }) => {
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Add closer" }).click();
 
-  await expect(page.getByText(unique)).toBeVisible();
-  await expect(page.getByText(email)).toBeVisible();
+  // The name also appears in the commission panel, so scope to the closers
+  // table cell to avoid a strict-mode violation (two visible matches).
+  await expect(page.getByRole("cell", { name: unique })).toBeVisible();
+  await expect(page.getByRole("cell", { name: email })).toBeVisible();
 });

@@ -28,9 +28,11 @@ test("ingest endpoint creates a lead that appears in the admin leads list", asyn
   const page = await ctx.newPage();
   await page.goto("/leads");
   // The leads list renders the name twice (table on sm+, stacked card on
-  // mobile, one hidden via CSS), so scope to the first match to avoid a
-  // strict-mode violation.
-  await expect(page.getByText(`E2E Lead ${unique}`).first()).toBeVisible();
+  // mobile, one hidden via CSS). Match the visible layout to avoid both a
+  // strict-mode violation and picking the hidden (mobile-first in DOM) copy.
+  await expect(
+    page.getByText(`E2E Lead ${unique}`).filter({ visible: true }),
+  ).toBeVisible();
   await ctx.close();
 });
 
