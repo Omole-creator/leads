@@ -271,3 +271,13 @@ background. Restrained — single-hue bars, no rainbow. Stages are "Sales Won/Lo
   (also reveals dev sign-in buttons on `/login`). `global-setup.ts` logs in
   admin + closer and saves storage states. Serving for e2e/preview: set `PORT`,
   matching `NEXTAUTH_URL`, `AUTH_TRUST_HOST=true`.
+- **E2E gotcha — text rendered twice.** Lists render as a **table on `sm+` and
+  stacked cards on mobile** (`hidden sm:block` / `sm:hidden`), so a bare
+  `getByText(name)` matches **two** DOM nodes → Playwright strict-mode violation,
+  and the mobile copy is **first in the DOM but `display:none`** (so `.first()`
+  picks the hidden one). For a true mobile/desktop toggle use
+  `.filter({ visible: true })`; when the text also appears in another **visible**
+  widget (e.g. a closer's name shows in both the commission panel and the table)
+  scope by role instead, e.g. `getByRole("cell", { name })`.
+- CI (`.github/workflows/ci.yml`) runs lint → typecheck → unit → integration →
+  e2e against a throwaway Postgres service; the e2e step is the brittle one.
