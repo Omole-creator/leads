@@ -244,6 +244,9 @@ Domain `jobmingle.co` is verified in Resend; `RESEND_API_KEY`/`RESEND_FROM_EMAIL
   ₦120k×3). Failure-safe (never throws). **Skips undecided leads**
   (`isUndecidedTrack` — "I'm not sure yet"/"Undecided") and any track with
   `cost <= 0`, so we never pitch a program/price the lead didn't choose.
+  Body uses `**bold**` markers for section labels; `bodyToHtml` renders them
+  as `<strong>` (shared with bulk email) while the plain-text fallback strips
+  the markers.
 - **Bulk personalized** (`/admin/email`): filter by segment/track/stage/cohort,
   templated `{{firstName}}/{{name}}/{{track}}`, **save draft / edit / send /
   delete**, full **sent history**. Dedupes by email. Free tier = 100/day, 3000/mo.

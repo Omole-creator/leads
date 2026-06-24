@@ -79,7 +79,7 @@ When you join {{track}}, you get a tutor who knows your name, projects you actua
 
 Our next cohort starts July 31st, and we keep the classes small on purpose.
 
-What's included:
+**What's included:**
 - Project-based learning with expert tutors
 - A 3-month internship, guaranteed
 - Our AI Skill-Retention Engine, so what you learn sticks
@@ -88,15 +88,17 @@ What's included:
 - Job placement support after the program
 - A private community learning right beside you
 
-Payment plans for {{track}}:
+**Payment plans for {{track}}:**
 - Once: {{once}}
 - Twice: {{twice}} each
 - Three times: {{thrice}} each
 
-Here's our promise: give it two weeks. Show up, do the work, and if you still feel it's not for you, we'll refund every naira. No forms. No awkward questions. The risk is on us, not you.
+**Here's our promise:** give it two weeks. Show up, do the work, and if you still feel it's not for you, we'll refund every naira. No forms. No awkward questions. The risk is on us, not you.
 
-Where to pay:
-Zenith Bank, 1311340458, JobMingle Limited
+**Where to pay:**
+Bank Name: Zenith Bank
+Account Number: 1311340458
+Account Name: JobMingle Limited
 
 Once you've paid, send your receipt to 08074071356 on WhatsApp and we'll start your onboarding the same day.
 
@@ -168,7 +170,9 @@ export async function sendWelcomeEmail(data: WelcomeEmail): Promise<boolean> {
     twice: formatNaira(twice),
     thrice: formatNaira(thrice),
   };
-  const text = renderTemplate(WELCOME_BODY, vars);
+  const rendered = renderTemplate(WELCOME_BODY, vars);
+  // Plain-text fallback: drop the **bold** markers; HTML keeps them as <strong>.
+  const text = rendered.replace(/\*\*(.+?)\*\*/g, "$1");
   try {
     await resend.emails.send({
       from: FROM,
@@ -176,7 +180,7 @@ export async function sendWelcomeEmail(data: WelcomeEmail): Promise<boolean> {
       to: data.to,
       subject: renderTemplate(WELCOME_SUBJECT, vars),
       text,
-      html: bodyToHtml(text),
+      html: bodyToHtml(rendered),
     });
     return true;
   } catch (err) {

@@ -13,11 +13,18 @@ function escapeHtml(s: string): string {
     .replace(/>/g, "&gt;");
 }
 
+/** Convert **bold** markers to <strong> (run after escaping so tags survive). */
+function boldify(line: string): string {
+  return line.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+}
+
 /** Wrap a plain-text body into a simple branded HTML email. */
 export function bodyToHtml(text: string): string {
   const inner = escapeHtml(text)
     .split("\n")
-    .map((l) => (l.trim() === "" ? "<br/>" : `<p style="margin:0 0 12px">${l}</p>`))
+    .map((l) =>
+      l.trim() === "" ? "<br/>" : `<p style="margin:0 0 12px">${boldify(l)}</p>`,
+    )
     .join("");
   return `<!doctype html><html><body style="font-family:Arial,Helvetica,sans-serif;color:#0A0A0A;line-height:1.5">
   <div style="max-width:560px;margin:0 auto;padding:20px">
