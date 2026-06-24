@@ -86,6 +86,8 @@ export interface LeadFilters {
   segment?: string;
   from?: Date;
   to?: Date;
+  /** Email-only: drop CLOSED_WON leads from the result (won leads never get blasts). */
+  excludeWon?: boolean;
 }
 
 /** Build a where clause scoped to the user (reps see only their own leads). */
@@ -100,7 +102,13 @@ export function leadWhere(
     where.assignedRepId = f.repId;
   }
   if (f.cohortId) where.cohortId = f.cohortId;
-  if (f.stage) where.stage = f.stage;
+  if (f.excludeWon && f.stage === "CLOSED_WON") {
+    where.stage = { in: [] }; // match nothing: won leads are never emailed
+  } else if (f.stage) {
+    where.stage = f.stage;
+  } else if (f.excludeWon) {
+    where.stage = { not: "CLOSED_WON" };
+  }
   if (f.trackId) where.trackId = f.trackId;
   if (f.segment) where.segment = f.segment;
   if (f.from || f.to) {

@@ -55,6 +55,7 @@ export function EmailComposer({
     if (trackId) p.set("trackId", trackId);
     if (stage) p.set("stage", stage);
     if (cohortId) p.set("cohortId", cohortId);
+    p.set("excludeWon", "1"); // never count/email Sales Won leads
     fetch(`/api/leads?${p.toString()}`)
       .then((r) => r.json())
       .then((leads) => {
@@ -146,7 +147,7 @@ export function EmailComposer({
           <Field label="Stage">
             <Select value={stage} onChange={(e) => setStage(e.target.value)}>
               <option value="">All</option>
-              {STAGES.map((s) => (
+              {STAGES.filter((s) => s !== "CLOSED_WON").map((s) => (
                 <option key={s} value={s}>
                   {STAGE_LABELS[s]}
                 </option>
