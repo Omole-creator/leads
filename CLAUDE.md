@@ -237,6 +237,11 @@ Domain `jobmingle.co` is verified in Resend; `RESEND_API_KEY`/`RESEND_FROM_EMAIL
 - **Bulk personalized** (`/admin/email`): filter by segment/track/stage/cohort,
   templated `{{firstName}}/{{name}}/{{track}}`, **save draft / edit / send /
   delete**, full **sent history**. Dedupes by email. Free tier = 100/day, 3000/mo.
+  **Sales Won (`CLOSED_WON`) leads are never bulk-email recipients**: the send
+  route and the live count preview pass `excludeWon` to `leadWhere()` (opt-in
+  filter — `{not: CLOSED_WON}`, or match-nothing if a stale draft targets won),
+  and "Sales Won" is removed from the composer's Stage dropdown. The flag is
+  email-only, so won leads stay visible in the leads list/dashboard.
 
 Verify deliveries in the **Resend dashboard → Logs**. `jobmingle.co` is also used
 by Kit (email marketing) — they coexist (separate DKIM).
