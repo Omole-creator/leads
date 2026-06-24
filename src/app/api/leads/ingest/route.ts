@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
 
   // 3. Ingest
   try {
-    const result = await ingestLead(prisma, parsed.data);
+    const result = await ingestLead(prisma, parsed.data, { sendWelcome: true });
     return NextResponse.json(result, { status: 201 });
   } catch (err) {
     if (err instanceof TrackNotFoundError) {

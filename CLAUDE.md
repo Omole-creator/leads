@@ -234,6 +234,16 @@ Domain `jobmingle.co` is verified in Resend; `RESEND_API_KEY`/`RESEND_FROM_EMAIL
 (`contact@jobmingle.co`) are set in Vercel. Two paths:
 - **Assignment notification** (`sendLeadAssignedEmail`) → the **assigned closer**,
   fired **only on new ingest** (not on bulk reassign — avoids hundreds of sends).
+- **Welcome email** (`sendWelcomeEmail`) → the **lead**, a promotional onboarding
+  blast (Zenith Bank `1311340458` JobMingle Limited, proof to `08074071356`,
+  July 31st cohort). Fired **form submissions only**: `ingestLead(prisma, data,
+  {sendWelcome:true})` is passed by the **`/api/leads/ingest`** route (Gmail
+  bridge) but **not** by `/api/leads` POST (admin manual-add) or CSV import.
+  Payment plans auto-fill per track via `welcomePlanAmounts(cost)` (Once=full,
+  Twice=half, Three-times=⅓ rounded **up** to nearest ₦10k → ₦350k reads
+  ₦120k×3). Failure-safe (never throws). **Skips undecided leads**
+  (`isUndecidedTrack` — "I'm not sure yet"/"Undecided") and any track with
+  `cost <= 0`, so we never pitch a program/price the lead didn't choose.
 - **Bulk personalized** (`/admin/email`): filter by segment/track/stage/cohort,
   templated `{{firstName}}/{{name}}/{{track}}`, **save draft / edit / send /
   delete**, full **sent history**. Dedupes by email. Free tier = 100/day, 3000/mo.

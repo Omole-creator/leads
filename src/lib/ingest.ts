@@ -1,6 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 import { pickNextRep, type ActiveRep } from "./round-robin";
-import { sendLeadAssignedEmail } from "./email";
+import { sendLeadAssignedEmail, sendWelcomeEmail } from "./email";
+import { firstName } from "./email-template";
 import { FOLLOW_UP_TYPES } from "./constants";
 import type { IngestInput } from "./schemas";
 
@@ -70,6 +71,7 @@ export interface IngestResult {
 export async function ingestLead(
   prisma: PrismaClient,
   input: IngestInput,
+  opts: { sendWelcome?: boolean } = {},
 ): Promise<IngestResult> {
   const trackName = parseTrackName(input.trackSelected);
   // Blank optional fields get sensible fallbacks so a lead is never rejected.
@@ -159,6 +161,17 @@ export async function ingestLead(
       amountPaid: Number(lead.amountPaid),
       balanceLeft: Number(lead.balanceLeft),
       howFoundUs: lead.howFoundUs,
+    });
+  }
+
+  // Welcome the lead — form submissions only (admin manual-adds pass no flag).
+  // Failure-safe: a Resend hiccup must never lose the lead.
+  if (opts.sendWelcome) {
+    await sendWelcomeEmail({
+      to: lead.email,
+      firstName: firstName(lead.fullName),
+      trackName: track.name,
+      trackCost,
     });
   }
 
