@@ -257,7 +257,9 @@ Domain `jobmingle.co` is verified in Resend; `RESEND_API_KEY`/`RESEND_FROM_EMAIL
   email-only, so won leads stay visible in the leads list/dashboard.
   - **Scholarship offer tokens.** The bulk send route also exposes per-track
     **scholarship pricing** tokens — `{{scholarshipPrice}}`, `{{installment}}`
-    (paid ×3), `{{oldPrice}}` (the regular/anchor price, for price-anchoring) —
+    (paid ×3), `{{oldPrice}}` (the regular/anchor price, for price-anchoring),
+    `{{covered}}` (amount pre-paid = `oldPrice − scholarshipPrice`; used instead
+    of a flat "30%" because the ₦350k tracks are only ~20% off) —
     computed by `scholarshipOffer(trackName)` in `src/lib/scholarship.ts`. This
     is a **discounted offer kept fully separate from the in-house price**
     (`Track.cost`, `welcomePlanAmounts`, commission are untouched). Tiers:
@@ -271,7 +273,14 @@ Domain `jobmingle.co` is verified in Resend; `RESEND_API_KEY`/`RESEND_FROM_EMAIL
     the **Segment** filter (they're tagged `"Scholarship"`, capital S). A **"Load
     scholarship offer"** button in `EmailComposer.tsx` fills the composer from
     `src/lib/scholarship-template.ts` — it only loads the draft, the admin still
-    reviews and clicks Send (nothing auto-sends).
+    reviews and clicks Send (nothing auto-sends). The template is a
+    congratulatory "1 of 10 selected out of 913" acceptance letter (<400 words)
+    with the instalment schedule, Zenith bank details, acceptance deadline
+    (20 Jul), cohort/Zoom logistics and an Instagram link; **fixed dates are
+    hard-coded for the July 2026 cohort — update them each run**. `bodyToHtml`
+    now **linkifies** bare `http(s)://`/`www.` URLs into `<a>` tags (shared by
+    all emails), and the bulk send route strips `**bold**` markers from the
+    plain-text fallback (HTML keeps them), matching the welcome email.
 
 Verify deliveries in the **Resend dashboard → Logs**. `jobmingle.co` is also used
 by Kit (email marketing) — they coexist (separate DKIM).

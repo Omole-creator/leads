@@ -18,12 +18,28 @@ function boldify(line: string): string {
   return line.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
 }
 
+/**
+ * Turn bare http(s):// or www. URLs into clickable <a> tags (run after escaping,
+ * before boldify). Trailing sentence punctuation is left outside the link.
+ */
+function linkify(line: string): string {
+  return line.replace(
+    /(https?:\/\/[^\s<]+|www\.[^\s<]+?)([.,;:!?)]*)(?=\s|$)/g,
+    (_m, url: string, trail: string) => {
+      const href = url.startsWith("http") ? url : `https://${url}`;
+      return `<a href="${href}" style="color:#1D4ED8">${url}</a>${trail}`;
+    },
+  );
+}
+
 /** Wrap a plain-text body into a simple branded HTML email. */
 export function bodyToHtml(text: string): string {
   const inner = escapeHtml(text)
     .split("\n")
     .map((l) =>
-      l.trim() === "" ? "<br/>" : `<p style="margin:0 0 12px">${boldify(l)}</p>`,
+      l.trim() === ""
+        ? "<br/>"
+        : `<p style="margin:0 0 12px">${boldify(linkify(l))}</p>`,
     )
     .join("");
   return `<!doctype html><html><body style="font-family:Arial,Helvetica,sans-serif;color:#0A0A0A;line-height:1.5">

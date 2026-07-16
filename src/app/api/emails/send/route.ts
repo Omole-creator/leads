@@ -60,13 +60,16 @@ export async function POST(req: NextRequest) {
       scholarshipPrice: formatNaira(offer.scholarship),
       installment: formatNaira(offer.installment), // per payment (paid x3)
       oldPrice: formatNaira(offer.regular), // anchor / "was" price
+      covered: formatNaira(offer.regular - offer.scholarship), // amount pre-paid
     };
-    const text = renderTemplate(bodyTpl, vars);
+    // HTML keeps **bold**; the plain-text fallback strips the markers.
+    const rendered = renderTemplate(bodyTpl, vars);
+    const text = rendered.replace(/\*\*(.+?)\*\*/g, "$1");
     messages.push({
       to: lead.email,
       subject: renderTemplate(subjectTpl, vars),
       text,
-      html: bodyToHtml(text),
+      html: bodyToHtml(rendered),
     });
   }
 

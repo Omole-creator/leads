@@ -204,7 +204,8 @@ export function EmailComposer({
           <code>{"{{name}}"}</code>, <code>{"{{track}}"}</code>. Scholarship pricing
           (per track): <code>{"{{scholarshipPrice}}"}</code>,{" "}
           <code>{"{{installment}}"}</code> (paid ×3),{" "}
-          <code>{"{{oldPrice}}"}</code> (regular price, for comparison). Wrap text
+          <code>{"{{oldPrice}}"}</code> (regular price),{" "}
+          <code>{"{{covered}}"}</code> (amount pre-paid for them). Wrap text
           in <code>**bold**</code> to embolden it. Sent from JobMingle Academy
           &lt;contact@jobmingle.co&gt;; replies come back there.
         </p>
