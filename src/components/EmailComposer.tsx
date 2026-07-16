@@ -53,8 +53,15 @@ export function EmailComposer({
   const [result, setResult] = useState("");
   const [error, setError] = useState("");
   const [showPreview, setShowPreview] = useState(false);
+  const [excludeScholarship, setExcludeScholarship] = useState(false);
 
-  const filters = () => ({ segment, trackId, stage, cohortId });
+  const filters = () => ({
+    segment,
+    trackId,
+    stage,
+    cohortId,
+    excludeScholarship,
+  });
 
   function loadScholarshipOffer() {
     setSubject(SCHOLARSHIP_SUBJECT);
@@ -89,6 +96,7 @@ export function EmailComposer({
     if (trackId) p.set("trackId", trackId);
     if (stage) p.set("stage", stage);
     if (cohortId) p.set("cohortId", cohortId);
+    if (excludeScholarship) p.set("excludeScholarship", "1");
     p.set("excludeWon", "1"); // never count/email Sales Won leads
     fetch(`/api/leads?${p.toString()}`)
       .then((r) => r.json())
@@ -103,7 +111,7 @@ export function EmailComposer({
     return () => {
       active = false;
     };
-  }, [segment, trackId, stage, cohortId]);
+  }, [segment, trackId, stage, cohortId, excludeScholarship]);
 
   async function saveDraft() {
     setError("");
@@ -199,6 +207,21 @@ export function EmailComposer({
             </Select>
           </Field>
         </div>
+        <label className="mt-3 flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            className="h-4 w-4"
+            checked={excludeScholarship}
+            onChange={(e) => setExcludeScholarship(e.target.checked)}
+          />
+          <span>
+            Exclude scholarship leads
+            <span className="text-muted-foreground">
+              {" "}
+              (leave scholarship recipients out of a general or cohort blast)
+            </span>
+          </span>
+        </label>
         <p className="mt-3 text-sm font-medium text-brand-black">
           {count === null ? "…" : count} recipient(s) match
         </p>

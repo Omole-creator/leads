@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
     from: sp.get("from") ? new Date(sp.get("from")!) : undefined,
     to: sp.get("to") ? new Date(sp.get("to")!) : undefined,
     excludeWon: sp.get("excludeWon") === "1",
+    excludeScholarship: sp.get("excludeScholarship") === "1",
   };
 
   const leads = await listLeads(prisma, auth.user, filters);

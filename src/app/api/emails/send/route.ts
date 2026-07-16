@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
     stage: (body?.stage as Stage) || undefined,
     cohortId: body?.cohortId || undefined,
     excludeWon: true, // Sales Won leads are never bulk-email recipients
+    excludeScholarship: !!body?.excludeScholarship,
   };
 
   const leads = await prisma.lead.findMany({

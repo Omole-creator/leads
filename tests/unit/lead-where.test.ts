@@ -32,3 +32,26 @@ describe("leadWhere — excludeWon (bulk-email recipient scoping)", () => {
     expect(where.stage).toEqual({ not: "CLOSED_WON" });
   });
 });
+
+describe("leadWhere — excludeScholarship (skip scholarship on general blasts)", () => {
+  it("excludes any Scholarship* segment, case-insensitively", () => {
+    expect(leadWhere(admin, { excludeScholarship: true }).NOT).toEqual({
+      segment: { contains: "scholarship", mode: "insensitive" },
+    });
+  });
+
+  it("adds no NOT clause when the flag is off", () => {
+    expect(leadWhere(admin, {}).NOT).toBeUndefined();
+  });
+
+  it("combines with a cohort filter (cohort AND not-scholarship)", () => {
+    const where = leadWhere(admin, {
+      cohortId: "july",
+      excludeScholarship: true,
+    });
+    expect(where.cohortId).toBe("july");
+    expect(where.NOT).toEqual({
+      segment: { contains: "scholarship", mode: "insensitive" },
+    });
+  });
+});

@@ -255,6 +255,14 @@ Domain `jobmingle.co` is verified in Resend; `RESEND_API_KEY`/`RESEND_FROM_EMAIL
   filter — `{not: CLOSED_WON}`, or match-nothing if a stale draft targets won),
   and "Sales Won" is removed from the composer's Stage dropdown. The flag is
   email-only, so won leads stay visible in the leads list/dashboard.
+  - **Exclude scholarship toggle.** Scholarship leads share a cohort with normal
+    applicants (the import requires a cohort), so a cohort-wide blast would also
+    reach them. The composer has an **"Exclude scholarship leads"** checkbox →
+    `excludeScholarship` on `leadWhere()`, which adds `NOT { segment contains
+    "scholarship" (insensitive) }` (catches "Scholarship"/"Scholarship 2"/…).
+    Wired through the live count (`/api/leads?excludeScholarship=1`) and the send
+    route. Not persisted on drafts (send-time choice). Equivalent manual path:
+    pick Segment = APPLICATION.
   - **Scholarship offer tokens.** The bulk send route also exposes per-track
     **scholarship pricing** tokens — `{{scholarshipPrice}}`, `{{installment}}`
     (paid ×3), `{{oldPrice}}` (the regular/anchor price, for price-anchoring),

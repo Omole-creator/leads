@@ -88,6 +88,8 @@ export interface LeadFilters {
   to?: Date;
   /** Email-only: drop CLOSED_WON leads from the result (won leads never get blasts). */
   excludeWon?: boolean;
+  /** Email-only: drop any "Scholarship*" segment (so a cohort blast skips them). */
+  excludeScholarship?: boolean;
 }
 
 /** Build a where clause scoped to the user (reps see only their own leads). */
@@ -111,6 +113,12 @@ export function leadWhere(
   }
   if (f.trackId) where.trackId = f.trackId;
   if (f.segment) where.segment = f.segment;
+  // Exclude scholarship leads from a general (e.g. cohort-wide) blast. Matches
+  // "Scholarship", "Scholarship 2", etc. Combines with an explicit segment
+  // filter via AND (selecting a scholarship segment + this flag = match nothing).
+  if (f.excludeScholarship) {
+    where.NOT = { segment: { contains: "scholarship", mode: "insensitive" } };
+  }
   if (f.from || f.to) {
     where.createdAt = {};
     if (f.from) where.createdAt.gte = f.from;
