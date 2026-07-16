@@ -11,21 +11,18 @@ export interface ScholarshipOffer {
 
 // Keyed by normalized track name (trimmed, lower-cased, internal whitespace
 // collapsed). Only the tracks that differ from the default tier need an entry;
-// Frontend/Backend and every other track resolve to DEFAULT_OFFER. Uses EXACT
-// normalized names (not substring matching) on purpose: the ₦300k fullstack
-// tracks must not sweep in the legacy seeded ₦150k "Frontend/Backend/Fullstack"
-// track. Names below mirror the real tracks in the live DB.
+// Frontend, Backend and every other track resolve to DEFAULT_OFFER. Uses EXACT
+// normalized names (not substring matching) on purpose: only the STANDALONE
+// Fullstack track is the ₦210k tier. The combined "Frontend / Backend /
+// Fullstack Development" and the legacy seeded "Frontend/Backend/Fullstack" are
+// deliberately kept on the default ₦105k tier — they are not priced as
+// fullstack. Names below mirror the real tracks in the live DB.
 const OFFERS: Record<string, ScholarshipOffer> = {
   cybersecurity: { regular: 350000, scholarship: 280000, installment: 94000 },
   "ai engineering": { regular: 350000, scholarship: 280000, installment: 94000 },
-  // ₦300k fullstack tier (real track names): standalone + the combined offering.
+  // ₦300k fullstack tier — standalone Fullstack only.
   fullstack: { regular: 300000, scholarship: 210000, installment: 70000 },
   "fullstack development": {
-    regular: 300000,
-    scholarship: 210000,
-    installment: 70000,
-  },
-  "frontend / backend / fullstack development": {
     regular: 300000,
     scholarship: 210000,
     installment: 70000,

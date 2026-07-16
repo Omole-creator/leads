@@ -261,11 +261,12 @@ Domain `jobmingle.co` is verified in Resend; `RESEND_API_KEY`/`RESEND_FROM_EMAIL
     computed by `scholarshipOffer(trackName)` in `src/lib/scholarship.ts`. This
     is a **discounted offer kept fully separate from the in-house price**
     (`Track.cost`, `welcomePlanAmounts`, commission are untouched). Tiers:
-    Cybersecurity/AI Engineering ₦350k→**₦280k** (₦94k×3); Fullstack
-    Development + "Frontend / Backend / Fullstack Development" ₦300k→**₦210k**
-    (₦70k×3); everything else ₦150k→**₦105k** (₦35k×3). Matching is by **exact
-    normalized name** (not substring) so the legacy seeded ₦150k
-    "Frontend/Backend/Fullstack" stays on the default tier. Tokens are
+    Cybersecurity/AI Engineering ₦350k→**₦280k** (₦94k×3); standalone
+    **Fullstack Development** ₦300k→**₦210k** (₦70k×3); everything else
+    ₦150k→**₦105k** (₦35k×3). Matching is by **exact normalized name** (not
+    substring): only standalone Fullstack is the ₦210k tier — the combined
+    "Frontend / Backend / Fullstack Development" and the legacy seeded
+    "Frontend/Backend/Fullstack" stay on the default ₦105k tier. Tokens are
     track-based and always available; the admin targets scholarship leads via
     the **Segment** filter (they're tagged `"Scholarship"`, capital S). A **"Load
     scholarship offer"** button in `EmailComposer.tsx` fills the composer from

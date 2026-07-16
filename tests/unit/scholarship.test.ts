@@ -26,9 +26,9 @@ describe("scholarshipOffer", () => {
     });
   });
 
-  it("the combined 'Frontend / Backend / Fullstack Development' (₦300k) -> fullstack tier", () => {
+  it("the combined 'Frontend / Backend / Fullstack Development' -> default tier (NOT fullstack)", () => {
     expect(scholarshipOffer("Frontend / Backend / Fullstack Development")).toEqual(
-      { regular: 300000, scholarship: 210000, installment: 70000 },
+      { regular: 150000, scholarship: 105000, installment: 35000 },
     );
   });
 
