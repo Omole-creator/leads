@@ -273,7 +273,12 @@ Domain `jobmingle.co` is verified in Resend; `RESEND_API_KEY`/`RESEND_FROM_EMAIL
     the **Segment** filter (they're tagged `"Scholarship"`, capital S). A **"Load
     scholarship offer"** button in `EmailComposer.tsx` fills the composer from
     `src/lib/scholarship-template.ts` — it only loads the draft, the admin still
-    reviews and clicks Send (nothing auto-sends). The template is a
+    reviews and clicks Send (nothing auto-sends). The composer's editable box
+    holds the **template source** (`{{tokens}}`, `**bold**`, `[label](url)`); a
+    **Preview** button (auto-opened by "Load scholarship offer") renders the
+    **finished email** in an iframe with sample values (name "Ada Obi", pricing
+    for the selected track, bold applied, Instagram clickable) so the admin sees
+    exactly what recipients get without the raw markers. The template is a
     congratulatory "1 of 10 selected out of 913" **partial-scholarship**
     acceptance letter (<400 words): the coverage is credited to a named sponsor
     (Andrew Akhabue, CEO of Flologpharma) rather than "we covered it", plus the

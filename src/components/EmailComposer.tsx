@@ -11,6 +11,9 @@ import {
   SCHOLARSHIP_SUBJECT,
   SCHOLARSHIP_BODY,
 } from "@/lib/scholarship-template";
+import { renderTemplate, bodyToHtml, firstName } from "@/lib/email-template";
+import { scholarshipOffer } from "@/lib/scholarship";
+import { formatNaira } from "@/lib/utils";
 
 interface Opt {
   id: string;
@@ -49,6 +52,7 @@ export function EmailComposer({
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState("");
   const [error, setError] = useState("");
+  const [showPreview, setShowPreview] = useState(false);
 
   const filters = () => ({ segment, trackId, stage, cohortId });
 
@@ -57,7 +61,26 @@ export function EmailComposer({
     setBody(SCHOLARSHIP_BODY);
     setResult("");
     setError("");
+    setShowPreview(true); // show the finished email straight away
   }
+
+  // Render the finished email with sample values so the admin sees what a
+  // recipient gets (bold applied, links clickable, price for the chosen track).
+  // The editable box keeps the {{tokens}} so each recipient is personalized.
+  const previewTrack =
+    tracks.find((t) => t.id === trackId)?.name ?? tracks[0]?.name ?? "Cybersecurity";
+  const previewOffer = scholarshipOffer(previewTrack);
+  const previewVars = {
+    name: "Ada Obi",
+    firstName: firstName("Ada Obi"),
+    track: previewTrack,
+    scholarshipPrice: formatNaira(previewOffer.scholarship),
+    installment: formatNaira(previewOffer.installment),
+    oldPrice: formatNaira(previewOffer.regular),
+    covered: formatNaira(previewOffer.regular - previewOffer.scholarship),
+  };
+  const previewSubject = renderTemplate(subject, previewVars);
+  const previewHtml = bodyToHtml(renderTemplate(body, previewVars));
 
   useEffect(() => {
     let active = true;
@@ -184,14 +207,24 @@ export function EmailComposer({
       <div className="space-y-3 rounded-lg border border-brand-black/10 p-4">
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm font-medium">2. Write the message</p>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={loadScholarshipOffer}
-          >
-            Load scholarship offer
-          </Button>
+          <div className="flex shrink-0 gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => setShowPreview((v) => !v)}
+            >
+              {showPreview ? "Hide preview" : "Preview"}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={loadScholarshipOffer}
+            >
+              Load scholarship offer
+            </Button>
+          </div>
         </div>
         <Field label="Subject">
           <Input value={subject} onChange={(e) => setSubject(e.target.value)} />
@@ -211,6 +244,26 @@ export function EmailComposer({
           from JobMingle Academy
           &lt;contact@jobmingle.co&gt;; replies come back there.
         </p>
+
+        {showPreview && (
+          <div className="space-y-2 rounded-lg border border-brand-black/10 bg-brand-black/[0.02] p-4">
+            <p className="text-xs font-medium text-muted-foreground">
+              Finished email preview — sample name{" "}
+              <span className="font-semibold">Ada Obi</span>, priced for{" "}
+              <span className="font-semibold">{previewTrack}</span>. Each recipient
+              gets their own name and their track&apos;s price.
+            </p>
+            <p className="text-sm">
+              <span className="text-muted-foreground">Subject: </span>
+              <span className="font-medium">{previewSubject || "(no subject)"}</span>
+            </p>
+            <iframe
+              title="Email preview"
+              srcDoc={previewHtml}
+              className="h-[520px] w-full rounded border border-brand-black/10 bg-white"
+            />
+          </div>
+        )}
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
