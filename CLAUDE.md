@@ -274,16 +274,20 @@ Domain `jobmingle.co` is verified in Resend; `RESEND_API_KEY`/`RESEND_FROM_EMAIL
     scholarship offer"** button in `EmailComposer.tsx` fills the composer from
     `src/lib/scholarship-template.ts` — it only loads the draft, the admin still
     reviews and clicks Send (nothing auto-sends). The template is a
-    congratulatory "1 of 10 selected out of 913" acceptance letter (<400 words)
-    with the instalment schedule, Zenith bank details, acceptance deadline
-    (20 Jul), cohort/Zoom logistics and an Instagram link. Voice + rules follow
+    congratulatory "1 of 10 selected out of 913" **partial-scholarship**
+    acceptance letter (<400 words): the coverage is credited to a named sponsor
+    (Andrew Akhabue, CEO of Flologpharma) rather than "we covered it", plus the
+    instalment schedule, Zenith bank details, acceptance deadline (20 Jul),
+    cohort/Zoom logistics and an Instagram link. Voice + rules follow
     `COPYWRITING-PLAYBOOK.md` house style (**no em dashes**, plain spoken
     language, make the reader feel chosen); run edits back through the
-    `humanizer` skill. **Fixed dates are hard-coded for the July 2026 cohort,
-    update them each run.** `bodyToHtml`
-    now **linkifies** bare `http(s)://`/`www.` URLs into `<a>` tags (shared by
-    all emails), and the bulk send route strips `**bold**` markers from the
-    plain-text fallback (HTML keeps them), matching the welcome email.
+    `humanizer` skill. **Fixed dates + the sponsor name are hard-coded for the
+    July 2026 cohort, update them each run.** `bodyToHtml`
+    **linkifies** bare `http(s)://`/`www.` URLs into `<a>` tags and renders
+    markdown `[label](url)` links (visible text = label, **naked URL hidden** —
+    used for the Instagram link); shared by all emails. The bulk send route
+    strips `**bold**` markers and flattens `[label](url)` → `label (url)` in the
+    plain-text fallback (HTML keeps both), matching the welcome email.
 
 Verify deliveries in the **Resend dashboard → Logs**. `jobmingle.co` is also used
 by Kit (email marketing) — they coexist (separate DKIM).

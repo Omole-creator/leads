@@ -18,18 +18,31 @@ function boldify(line: string): string {
   return line.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
 }
 
+const anchor = (href: string, label: string) =>
+  `<a href="${href}" style="color:#1D4ED8">${label}</a>`;
+
 /**
- * Turn bare http(s):// or www. URLs into clickable <a> tags (run after escaping,
- * before boldify). Trailing sentence punctuation is left outside the link.
+ * Render links in a line (run after escaping, before boldify):
+ *  - markdown `[label](url)` becomes a link whose visible text is the label, so
+ *    the raw URL stays hidden.
+ *  - any remaining bare http(s):// or www. URL is auto-linked.
+ * Markdown links are pulled out first behind \x00-delimited placeholders so the
+ * bare-URL pass doesn't re-link the href inside them. Trailing sentence
+ * punctuation stays outside the link.
  */
-function linkify(line: string): string {
-  return line.replace(
-    /(https?:\/\/[^\s<]+|www\.[^\s<]+?)([.,;:!?)]*)(?=\s|$)/g,
-    (_m, url: string, trail: string) => {
-      const href = url.startsWith("http") ? url : `https://${url}`;
-      return `<a href="${href}" style="color:#1D4ED8">${url}</a>${trail}`;
-    },
+function renderLinks(line: string): string {
+  const held: string[] = [];
+  let s = line.replace(
+    /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+    (_m, label: string, url: string) =>
+      `\x00${held.push(anchor(url, label)) - 1}\x00`,
   );
+  s = s.replace(
+    /(https?:\/\/[^\s<]+|www\.[^\s<]+?)([.,;:!?)]*)(?=\s|$)/g,
+    (_m, url: string, trail: string) =>
+      anchor(url.startsWith("http") ? url : `https://${url}`, url) + trail,
+  );
+  return s.replace(/\x00(\d+)\x00/g, (_m, i: string) => held[Number(i)]);
 }
 
 /** Wrap a plain-text body into a simple branded HTML email. */
@@ -39,7 +52,7 @@ export function bodyToHtml(text: string): string {
     .map((l) =>
       l.trim() === ""
         ? "<br/>"
-        : `<p style="margin:0 0 12px">${boldify(linkify(l))}</p>`,
+        : `<p style="margin:0 0 12px">${boldify(renderLinks(l))}</p>`,
     )
     .join("");
   return `<!doctype html><html><body style="font-family:Arial,Helvetica,sans-serif;color:#0A0A0A;line-height:1.5">

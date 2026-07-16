@@ -206,7 +206,9 @@ export function EmailComposer({
           <code>{"{{installment}}"}</code> (paid ×3),{" "}
           <code>{"{{oldPrice}}"}</code> (regular price),{" "}
           <code>{"{{covered}}"}</code> (amount pre-paid for them). Wrap text
-          in <code>**bold**</code> to embolden it. Sent from JobMingle Academy
+          in <code>**bold**</code> to embolden it, and{" "}
+          <code>{"[label](https://url)"}</code> to hide a link behind a word. Sent
+          from JobMingle Academy
           &lt;contact@jobmingle.co&gt;; replies come back there.
         </p>
       </div>

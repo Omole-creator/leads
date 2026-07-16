@@ -62,9 +62,12 @@ export async function POST(req: NextRequest) {
       oldPrice: formatNaira(offer.regular), // anchor / "was" price
       covered: formatNaira(offer.regular - offer.scholarship), // amount pre-paid
     };
-    // HTML keeps **bold**; the plain-text fallback strips the markers.
+    // HTML keeps **bold** and [label](url) links; the plain-text fallback strips
+    // the bold markers and flattens links to "label (url)".
     const rendered = renderTemplate(bodyTpl, vars);
-    const text = rendered.replace(/\*\*(.+?)\*\*/g, "$1");
+    const text = rendered
+      .replace(/\*\*(.+?)\*\*/g, "$1")
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, "$1 ($2)");
     messages.push({
       to: lead.email,
       subject: renderTemplate(subjectTpl, vars),
