@@ -4,6 +4,8 @@ import { requireAdmin } from "@/lib/api";
 import { leadWhere, type LeadFilters } from "@/lib/leads";
 import { sendBulkEmails, emailEnabled, type OutgoingEmail } from "@/lib/email";
 import { renderTemplate, bodyToHtml, firstName } from "@/lib/email-template";
+import { scholarshipOffer } from "@/lib/scholarship";
+import { formatNaira } from "@/lib/utils";
 import type { Stage } from "@prisma/client";
 
 export async function POST(req: NextRequest) {
@@ -47,10 +49,17 @@ export async function POST(req: NextRequest) {
     const to = lead.email.toLowerCase().trim();
     if (!to || seen.has(to)) continue;
     seen.add(to);
+    // Scholarship pricing is per-track and separate from Track.cost / the
+    // in-house offer. Tokens are always available; the admin targets scholarship
+    // recipients via the Segment filter.
+    const offer = scholarshipOffer(lead.track.name);
     const vars = {
       name: lead.fullName,
       firstName: firstName(lead.fullName),
       track: lead.track.name,
+      scholarshipPrice: formatNaira(offer.scholarship),
+      installment: formatNaira(offer.installment), // per payment (paid x3)
+      oldPrice: formatNaira(offer.regular), // anchor / "was" price
     };
     const text = renderTemplate(bodyTpl, vars);
     messages.push({

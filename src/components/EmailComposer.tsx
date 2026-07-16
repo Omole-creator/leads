@@ -7,6 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { STAGES, STAGE_LABELS } from "@/lib/constants";
+import {
+  SCHOLARSHIP_SUBJECT,
+  SCHOLARSHIP_BODY,
+} from "@/lib/scholarship-template";
 
 interface Opt {
   id: string;
@@ -47,6 +51,13 @@ export function EmailComposer({
   const [error, setError] = useState("");
 
   const filters = () => ({ segment, trackId, stage, cohortId });
+
+  function loadScholarshipOffer() {
+    setSubject(SCHOLARSHIP_SUBJECT);
+    setBody(SCHOLARSHIP_BODY);
+    setResult("");
+    setError("");
+  }
 
   useEffect(() => {
     let active = true;
@@ -171,7 +182,17 @@ export function EmailComposer({
       </div>
 
       <div className="space-y-3 rounded-lg border border-brand-black/10 p-4">
-        <p className="text-sm font-medium">2. Write the message</p>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm font-medium">2. Write the message</p>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={loadScholarshipOffer}
+          >
+            Load scholarship offer
+          </Button>
+        </div>
         <Field label="Subject">
           <Input value={subject} onChange={(e) => setSubject(e.target.value)} />
         </Field>
@@ -180,8 +201,12 @@ export function EmailComposer({
         </Field>
         <p className="text-xs text-muted-foreground">
           Personalize with <code>{"{{firstName}}"}</code>,{" "}
-          <code>{"{{name}}"}</code>, <code>{"{{track}}"}</code>. Sent from
-          JobMingle Academy &lt;contact@jobmingle.co&gt;; replies come back there.
+          <code>{"{{name}}"}</code>, <code>{"{{track}}"}</code>. Scholarship pricing
+          (per track): <code>{"{{scholarshipPrice}}"}</code>,{" "}
+          <code>{"{{installment}}"}</code> (paid ×3),{" "}
+          <code>{"{{oldPrice}}"}</code> (regular price, for comparison). Wrap text
+          in <code>**bold**</code> to embolden it. Sent from JobMingle Academy
+          &lt;contact@jobmingle.co&gt;; replies come back there.
         </p>
       </div>
 

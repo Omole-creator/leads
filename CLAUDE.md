@@ -255,6 +255,22 @@ Domain `jobmingle.co` is verified in Resend; `RESEND_API_KEY`/`RESEND_FROM_EMAIL
   filter — `{not: CLOSED_WON}`, or match-nothing if a stale draft targets won),
   and "Sales Won" is removed from the composer's Stage dropdown. The flag is
   email-only, so won leads stay visible in the leads list/dashboard.
+  - **Scholarship offer tokens.** The bulk send route also exposes per-track
+    **scholarship pricing** tokens — `{{scholarshipPrice}}`, `{{installment}}`
+    (paid ×3), `{{oldPrice}}` (the regular/anchor price, for price-anchoring) —
+    computed by `scholarshipOffer(trackName)` in `src/lib/scholarship.ts`. This
+    is a **discounted offer kept fully separate from the in-house price**
+    (`Track.cost`, `welcomePlanAmounts`, commission are untouched). Tiers:
+    Cybersecurity/AI Engineering ₦350k→**₦280k** (₦94k×3); Fullstack
+    Development + "Frontend / Backend / Fullstack Development" ₦300k→**₦210k**
+    (₦70k×3); everything else ₦150k→**₦105k** (₦35k×3). Matching is by **exact
+    normalized name** (not substring) so the legacy seeded ₦150k
+    "Frontend/Backend/Fullstack" stays on the default tier. Tokens are
+    track-based and always available; the admin targets scholarship leads via
+    the **Segment** filter (they're tagged `"Scholarship"`, capital S). A **"Load
+    scholarship offer"** button in `EmailComposer.tsx` fills the composer from
+    `src/lib/scholarship-template.ts` — it only loads the draft, the admin still
+    reviews and clicks Send (nothing auto-sends).
 
 Verify deliveries in the **Resend dashboard → Logs**. `jobmingle.co` is also used
 by Kit (email marketing) — they coexist (separate DKIM).
