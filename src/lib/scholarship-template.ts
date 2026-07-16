@@ -1,47 +1,48 @@
 // Prewritten scholarship-offer email loaded into the bulk composer via the
 // "Load scholarship offer" button. Uses the price tokens the send route provides
 // per lead: {{firstName}} {{name}} {{track}} {{scholarshipPrice}} {{installment}}
-// {{oldPrice}} {{covered}}. The admin reviews and edits before sending — nothing
-// auto-sends. Kept under 400 words. Fixed dates below are for the July 2026
-// cohort; update them for future runs.
+// {{oldPrice}} {{covered}}. The admin reviews and edits before sending, nothing
+// auto-sends. Voice + rules follow COPYWRITING-PLAYBOOK.md (no em dashes, plain
+// spoken language, make the reader feel chosen). Under 400 words. Fixed dates
+// are for the July 2026 cohort, update them for future runs.
 export const SCHOLARSHIP_SUBJECT =
-  "Congratulations {{firstName}} — you got a JobMingle scholarship for {{track}} 🎉";
+  "Congratulations {{firstName}}, you got the JobMingle scholarship for {{track}} 🎉";
 
-export const SCHOLARSHIP_BODY = `Congratulations, {{name}}!
+export const SCHOLARSHIP_BODY = `Congratulations, {{name}}.
 
-Out of 913 applications, you are one of only 10 people selected for a JobMingle scholarship in {{track}}. This isn't a mass offer — you earned your place.
+Read this slowly, because it is real. Out of 913 people who applied, you are one of only 10 we picked for a JobMingle scholarship in {{track}}. We went through your application and agreed you are exactly who we want in this room.
 
-Here's what it means for you. You will no longer pay the regular price of {{oldPrice}}. We've already paid **{{covered}}** of your tuition, so your scholarship price is just **{{scholarshipPrice}}**.
+So here is what we have already done for you. You will not pay the full {{oldPrice}} that everyone else pays. We have covered **{{covered}}** of your fee ourselves, which brings your part down to just **{{scholarshipPrice}}**. And you do not even pay it in one go.
 
-On your application you chose the 3-instalment plan and said you'd make your first payment within 5 days. So you'll pay just **{{installment}} a month for 3 months** — nothing more.
+On your application you chose to pay in three parts, and said you can make your first payment within five days. So all you pay is **{{installment}} a month for three months**, and nothing after that.
 
-**Your first payment of {{installment}} is due on or before 20 July 2026**, so we can onboard you immediately.
+To hold your place, make that first payment of {{installment}} on or before 20 July 2026. The moment it lands, we start your onboarding.
 
-**Make your first payment to:**
+Here is where to send it:
 Bank: Zenith Bank
 Account Number: 1311340458
 Account Name: JobMingle Limited
 
-Then send your proof of payment to 08074071356 on WhatsApp and we'll start your onboarding the same day.
+Once you have paid, send your proof on WhatsApp to 08074071356 and we will welcome you that same day.
 
-Inside the cohort you get:
-- Project-based learning built on our C.L.I Framework — available only at JobMingle
-- A 3-month internship, guaranteed
-- One-on-one mentorship
-- Our AI Skill-Retention Engine, so what you learn sticks
-- A certificate and job-placement support when you finish
-- A private community learning right beside you
+Your seat gives you:
+- Real projects built our way with the C.L.I Framework, which you will only find at JobMingle
+- A three-month internship that is guaranteed
+- A mentor who works with you one on one
+- Our AI Skill-Retention Engine, so what you learn actually stays with you
+- A certificate and job support when you finish
+- A small group learning right there beside you
 
-Classes begin 31 July 2026 and hold at least twice a week on Zoom, 7–9pm.
+Classes start on 31 July 2026 and hold at least twice a week on Zoom, from 7pm to 9pm.
 
-Learning is a big commitment, so if it helps you feel confident about yours, over 10 of our students share what the experience has been like for them here: https://www.instagram.com/jobmingle_
+Learning is a real commitment, so if it helps you decide, a few of our students have shared what it felt like for them, in their own words, on our Instagram: https://www.instagram.com/jobmingle_
 
-To keep your slot, please accept your scholarship on or before **20 July 2026**. After that, it will be offered to the next most qualified applicant.
+One more thing. Please accept your scholarship on or before 20 July 2026. If we do not hear from you by then, we pass your seat to the next person in line, and we would hate for that to be you.
 
-Congratulations once again, {{firstName}} — we can't wait to see what you'll build. All the best.
+Congratulations again, {{firstName}}. You earned this, and we cannot wait to see what you build with it. Wishing you all the best.
 
 Best regards,
 The JobMingle Academy Team
 https://www.jobmingle.co
 
-PS: Have questions? WhatsApp us on 08074071356 before making payment.`;
+PS: Got a question? Message us on WhatsApp at 08074071356 before you pay and we will help you out.`;

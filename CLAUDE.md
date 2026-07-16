@@ -276,8 +276,11 @@ Domain `jobmingle.co` is verified in Resend; `RESEND_API_KEY`/`RESEND_FROM_EMAIL
     reviews and clicks Send (nothing auto-sends). The template is a
     congratulatory "1 of 10 selected out of 913" acceptance letter (<400 words)
     with the instalment schedule, Zenith bank details, acceptance deadline
-    (20 Jul), cohort/Zoom logistics and an Instagram link; **fixed dates are
-    hard-coded for the July 2026 cohort — update them each run**. `bodyToHtml`
+    (20 Jul), cohort/Zoom logistics and an Instagram link. Voice + rules follow
+    `COPYWRITING-PLAYBOOK.md` house style (**no em dashes**, plain spoken
+    language, make the reader feel chosen); run edits back through the
+    `humanizer` skill. **Fixed dates are hard-coded for the July 2026 cohort,
+    update them each run.** `bodyToHtml`
     now **linkifies** bare `http(s)://`/`www.` URLs into `<a>` tags (shared by
     all emails), and the bulk send route strips `**bold**` markers from the
     plain-text fallback (HTML keeps them), matching the welcome email.
