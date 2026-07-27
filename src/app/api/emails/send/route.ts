@@ -3,7 +3,12 @@ import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/api";
 import { leadWhere, type LeadFilters } from "@/lib/leads";
 import { sendBulkEmails, emailEnabled, type OutgoingEmail } from "@/lib/email";
-import { renderTemplate, bodyToHtml, firstName } from "@/lib/email-template";
+import {
+  renderTemplate,
+  bodyToHtml,
+  bodyToText,
+  firstName,
+} from "@/lib/email-template";
 import { scholarshipOffer } from "@/lib/scholarship";
 import { formatNaira } from "@/lib/utils";
 import type { Stage } from "@prisma/client";
@@ -63,12 +68,10 @@ export async function POST(req: NextRequest) {
       oldPrice: formatNaira(offer.regular), // anchor / "was" price
       covered: formatNaira(offer.regular - offer.scholarship), // amount pre-paid
     };
-    // HTML keeps **bold** and [label](url) links; the plain-text fallback strips
-    // the bold markers and flattens links to "label (url)".
+    // HTML keeps **bold**, [label](url) links and ![alt](url) images; the
+    // plain-text fallback flattens all three (see bodyToText).
     const rendered = renderTemplate(bodyTpl, vars);
-    const text = rendered
-      .replace(/\*\*(.+?)\*\*/g, "$1")
-      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, "$1 ($2)");
+    const text = bodyToText(rendered);
     messages.push({
       to: lead.email,
       subject: renderTemplate(subjectTpl, vars),

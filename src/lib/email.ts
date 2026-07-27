@@ -1,6 +1,6 @@
 import { Resend } from "resend";
 import { formatNaira } from "./utils";
-import { renderTemplate, bodyToHtml } from "./email-template";
+import { renderTemplate, bodyToHtml, bodyToText } from "./email-template";
 
 const apiKey = process.env.RESEND_API_KEY;
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? "leads@jobmingle.com";
@@ -171,8 +171,9 @@ export async function sendWelcomeEmail(data: WelcomeEmail): Promise<boolean> {
     thrice: formatNaira(thrice),
   };
   const rendered = renderTemplate(WELCOME_BODY, vars);
-  // Plain-text fallback: drop the **bold** markers; HTML keeps them as <strong>.
-  const text = rendered.replace(/\*\*(.+?)\*\*/g, "$1");
+  // Plain-text fallback: drop the **bold** markers (HTML keeps them as
+  // <strong>) and flatten any links/images. Same flattener as the bulk send.
+  const text = bodyToText(rendered);
   try {
     await resend.emails.send({
       from: FROM,

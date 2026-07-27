@@ -226,7 +226,9 @@ if that happens). Config (`INGEST_URL`, `INGEST_SECRET`) is inlined at the top.
   `?pgbouncer=true&connection_limit=1`), `DIRECT_URL` (**session** pooler `:5432`),
   `AUTH_SECRET` + `NEXTAUTH_SECRET`, `INGEST_SHARED_SECRET`, `AUTH_TRUST_HOST=true`,
   `NEXTAUTH_URL`/`APP_URL` = live URL, `GOOGLE_CLIENT_ID/SECRET`, `RESEND_API_KEY`,
-  `RESEND_FROM_EMAIL=contact@jobmingle.co`. **Do NOT set `E2E_TEST_MODE`** in prod.
+  `RESEND_FROM_EMAIL=contact@jobmingle.co`, `SUPABASE_URL`,
+  `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET` (bulk-email images).
+  **Do NOT set `E2E_TEST_MODE`** in prod.
 
 ## Email (Resend) — live
 
@@ -298,9 +300,38 @@ Domain `jobmingle.co` is verified in Resend; `RESEND_API_KEY`/`RESEND_FROM_EMAIL
     July 2026 cohort, update them each run.** `bodyToHtml`
     **linkifies** bare `http(s)://`/`www.` URLs into `<a>` tags and renders
     markdown `[label](url)` links (visible text = label, **naked URL hidden** —
-    used for the Instagram link); shared by all emails. The bulk send route
-    strips `**bold**` markers and flattens `[label](url)` → `label (url)` in the
-    plain-text fallback (HTML keeps both), matching the welcome email.
+    used for the Instagram link); shared by all emails. **`bodyToText`** is the
+    single plain-text flattener (bold markers stripped, `[label](url)` →
+    `label (url)`, `![alt](url)` → `[image: alt] url`), shared by the bulk send
+    route and `sendWelcomeEmail` — it used to be duplicated inline in both.
+  - **Pictures in the body** (`![alt](url)`, rendered by `bodyToHtml` as a
+    responsive `<img>`). Uploaded via the composer's file input →
+    **`POST /api/emails/upload`** (admin-only, multipart) → a **public Supabase
+    Storage bucket** (`email-assets`) reached through its **plain REST API in
+    `src/lib/storage.ts`** — deliberately **no `@supabase/supabase-js`** (heavy dep
+    for one call). Env: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
+    `SUPABASE_STORAGE_BUCKET`. Design constraints, all load-bearing:
+    - **Hosted URLs, not attachments.** Resend: *"Emails with attachments cannot
+      be sent using our batching endpoint."* `sendBulkEmails` uses
+      `resend.batch.send` (1 call per 100 recipients); attachments would force a
+      per-message `emails.send` loop (~50s for 100 at 2 req/s, needing
+      `maxDuration` raised). **Don't switch the bulk path to attachments.**
+    - **No schema change.** The markdown lives in `EmailCampaign.body` (already
+      `TEXT`, already round-tripped verbatim), so drafts keep their images free.
+    - In `renderLinks` the image pass runs **first and must push into `held[]`**,
+      never emit the tag inline — otherwise the bare-URL autolinker re-links the
+      URL inside `src="…"` and corrupts the whole tag (`[^\s<]+` eats the closing
+      quote). `tests/unit/email-template.test.ts` guards this.
+    - `escapeHtml` escapes `"` too: without it a URL containing a quote closes the
+      attribute and can start an `onerror=` one, and the preview `<iframe srcDoc>`
+      has no `sandbox`, so it is same-origin with `/admin/email`.
+    - Images are **downscaled client-side to 560px** (`src/lib/image-resize.ts`)
+      because Outlook desktop's Word engine ignores `max-width` *and* the shell's
+      560px cap; it also keeps uploads under Vercel's ~4.5MB body limit and off the
+      free-tier egress cliff. Uploads are validated by **magic bytes**, not
+      `file.type`; **SVG is rejected** (script in a public-URL file).
+    - **The bucket must never be pruned** — recipients open old mail for months and
+      deleting an object breaks every historical email.
 
 Verify deliveries in the **Resend dashboard → Logs**. `jobmingle.co` is also used
 by Kit (email marketing) — they coexist (separate DKIM).

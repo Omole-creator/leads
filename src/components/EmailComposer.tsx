@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,15 @@ import {
 } from "@/lib/scholarship-template";
 import { renderTemplate, bodyToHtml, firstName } from "@/lib/email-template";
 import { scholarshipOffer } from "@/lib/scholarship";
+import { downscaleImage } from "@/lib/image-resize";
 import { formatNaira } from "@/lib/utils";
+
+// Mirrored from storage.ts rather than imported — that module reads
+// process.env at module scope and must stay off the client. The server
+// re-validates by magic bytes regardless, so these are only a fast first filter.
+const PICKABLE = ["image/png", "image/jpeg", "image/gif", "image/webp"];
+// Checked before the downscale, which is what gets the upload under the ~4MB cap.
+const MAX_PICK_BYTES = 15_000_000;
 
 interface Opt {
   id: string;
@@ -54,6 +62,83 @@ export function EmailComposer({
   const [error, setError] = useState("");
   const [showPreview, setShowPreview] = useState(false);
   const [excludeScholarship, setExcludeScholarship] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
+  const caretRef = useRef<number | null>(null);
+
+  // `body` is a controlled value, so React puts the caret back at the end after
+  // an inserted image re-renders the textarea. Restore where it belongs.
+  useEffect(() => {
+    const pos = caretRef.current;
+    if (pos == null) return;
+    caretRef.current = null;
+    const el = bodyRef.current;
+    if (!el) return;
+    el.focus();
+    el.setSelectionRange(pos, pos);
+  }, [body]);
+
+  function insertAtCaret(snippet: string) {
+    const el = bodyRef.current;
+    const start = el?.selectionStart ?? body.length;
+    const end = el?.selectionEnd ?? start;
+    const before = body.slice(0, start);
+    const after = body.slice(end);
+    // Keep the image on its own line — bodyToHtml wraps each line in its own <p>.
+    const lead = before && !before.endsWith("\n") ? "\n" : "";
+    const tail = after === "" || after.startsWith("\n") ? "" : "\n";
+    const insert = `${lead}${snippet}${tail}`;
+    caretRef.current = before.length + insert.length;
+    setBody(`${before}${insert}${after}`);
+  }
+
+  async function onPickImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const input = e.target;
+    const file = input.files?.[0];
+    input.value = ""; // let the same file be re-picked after an error
+    if (!file) return;
+    setError("");
+    setResult("");
+    if (!PICKABLE.includes(file.type)) {
+      setError("Pick a PNG, JPEG, GIF or WebP image.");
+      return;
+    }
+    if (file.size > MAX_PICK_BYTES) {
+      setError("That image is over 15MB — crop or compress it first.");
+      return;
+    }
+    setUploading(true);
+    try {
+      const blob = await downscaleImage(file);
+      const fd = new FormData();
+      fd.append("file", blob, file.name);
+      // No Content-Type header: the browser has to set the multipart boundary.
+      const res = await fetch("/api/emails/upload", { method: "POST", body: fd });
+      if (!res.ok) {
+        setError(
+          (await res.json().catch(() => ({}))).error ?? "Image upload failed.",
+        );
+        return;
+      }
+      const { url } = (await res.json()) as { url: string };
+      // Seed the alt text from the filename, dropping characters that would
+      // break the markdown. Many clients show the alt instead of the image.
+      const alt =
+        file.name
+          .replace(/\.[^.]+$/, "")
+          .replace(/[[\]()!\r\n]/g, " ")
+          .trim()
+          .slice(0, 80) || "image";
+      insertAtCaret(`![${alt}](${url})`);
+      setResult(
+        "Image added to the message. Edit the words in [square brackets] to describe it.",
+      );
+    } catch {
+      setError("Image upload failed.");
+    } finally {
+      setUploading(false);
+    }
+  }
 
   const filters = () => ({
     segment,
@@ -253,8 +338,25 @@ export function EmailComposer({
           <Input value={subject} onChange={(e) => setSubject(e.target.value)} />
         </Field>
         <Field label="Message">
-          <Textarea rows={10} value={body} onChange={(e) => setBody(e.target.value)} />
+          <Textarea
+            ref={bodyRef}
+            rows={10}
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+          />
         </Field>
+        <Field label="Add a picture (it shows inside the email body)">
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/gif,image/webp"
+            disabled={busy || uploading}
+            onChange={onPickImage}
+            className="block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-brand-black file:px-3 file:py-2 file:text-brand-white"
+          />
+        </Field>
+        {uploading && (
+          <p className="text-xs text-muted-foreground">Uploading image…</p>
+        )}
         <p className="text-xs text-muted-foreground">
           Personalize with <code>{"{{firstName}}"}</code>,{" "}
           <code>{"{{name}}"}</code>, <code>{"{{track}}"}</code>. Scholarship pricing
@@ -263,8 +365,11 @@ export function EmailComposer({
           <code>{"{{oldPrice}}"}</code> (regular price),{" "}
           <code>{"{{covered}}"}</code> (amount pre-paid for them). Wrap text
           in <code>**bold**</code> to embolden it, and{" "}
-          <code>{"[label](https://url)"}</code> to hide a link behind a word. Sent
-          from JobMingle Academy
+          <code>{"[label](https://url)"}</code> to hide a link behind a word.
+          Pictures are <code>{"![description](https://url)"}</code> on their own
+          line — keep the description meaningful, because Outlook and Yahoo hide
+          images until the reader clicks &ldquo;show images&rdquo;, so never put
+          the price or the date only inside a picture. Sent from JobMingle Academy
           &lt;contact@jobmingle.co&gt;; replies come back there.
         </p>
 
@@ -295,14 +400,14 @@ export function EmailComposer({
       <div className="flex gap-2">
         <Button
           onClick={send}
-          disabled={busy || !subject.trim() || !body.trim() || !count}
+          disabled={busy || uploading || !subject.trim() || !body.trim() || !count}
         >
           {busy ? "Working…" : `Send to ${count ?? 0}`}
         </Button>
         <Button
           variant="outline"
           onClick={saveDraft}
-          disabled={busy || !subject.trim() || !body.trim()}
+          disabled={busy || uploading || !subject.trim() || !body.trim()}
         >
           Save draft
         </Button>
