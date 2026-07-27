@@ -228,7 +228,13 @@ if that happens). Config (`INGEST_URL`, `INGEST_SECRET`) is inlined at the top.
   `NEXTAUTH_URL`/`APP_URL` = live URL, `GOOGLE_CLIENT_ID/SECRET`, `RESEND_API_KEY`,
   `RESEND_FROM_EMAIL=contact@jobmingle.co`, `SUPABASE_URL`,
   `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET` (bulk-email images).
-  **Do NOT set `E2E_TEST_MODE`** in prod.
+  **Do NOT set `E2E_TEST_MODE`** in prod. Paste values **unquoted** — Vercel stores
+  them literally, so a pasted `"https://…"` keeps the quotes and every upload 404s.
+- **`tailwind.config.ts` must `import` its plugin, never `require()` it.** On Node
+  24 Tailwind loads the TS config as ESM, where `require` is undefined, and
+  `next dev` then dies compiling **every** page with `ReferenceError: require is
+  not defined` (connection reset in the browser, no useful error on screen).
+  `next build` is unaffected, so this only ever shows up in local dev.
 
 ## Email (Resend) — live
 
