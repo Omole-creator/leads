@@ -366,9 +366,14 @@ ID, no schema change; only an `ActivityLog` row (`CERTIFICATE_SENT`) after a sen
   to make. One failure can't take the run down. The tab must stay open.
 - **Design**: layout from the reference certificate (centred stack, rules with
   dot terminals, "Issued on", the achievement statement, signature block).
-  Blackletter (`UnifrakturCook`) is the **heading only** — it was tried on the
-  name/course/date too and was too hard to read, so those use a decorative but
-  legible face (`CinzelDecorative-Bold`, registered as family **"Display"**).
+  Blackletter (`UnifrakturCook`) is the **heading**, always. The name, course and
+  date use a **selectable** face — a **Font** dropdown in both dialogs, backed by
+  `DISPLAY_FONTS` in `src/lib/certificate-fonts.ts` (Cinzel Decorative *default*,
+  Marcellus SC, Marcellus, Spectral, Blackletter), registered as family
+  **"Display"** and validated by a zod enum so a request can only name a font
+  that is actually vendored. Each entry carries a `sizeScale`: the sizes in
+  `certificate-art.tsx` are calibrated against the widest face (Cinzel
+  Decorative) and narrower ones are scaled up.
   **Edges are JobMingle's** — the
   gold/black corner waves, black corner brackets and faint "M" watermark are
   hand-authored SVG in `certificate-art.tsx`, because the original artwork only
@@ -383,7 +388,7 @@ ID, no schema change; only an `ActivityLog` row (`CERTIFICATE_SENT`) after a sen
   `download=1` to force a download, inline otherwise so the preview `<img>`
   works) and `POST /api/certificates/send` (admin; recipient address is read
   from the lead, **never** from the request body).
-- **Text** lives in `src/lib/certificate.ts` (pure, unit-tested):
+- **Fields** live in `src/lib/certificate.ts` (pure, unit-tested):
   `certificateCourseTitle` (track name + " COURSE"), `certificateIndustry`
   (track → industry phrase for the statement), `certificateStatement`,
   `formatIssueDate` ("29 JULY, 2026"), `certificateDefaults`. The industry map

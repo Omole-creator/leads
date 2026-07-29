@@ -5,9 +5,10 @@
 // Every field is auto-filled but EDITABLE in the admin dialog: `ingest.ts`
 // auto-creates tracks from whatever the enquiry form sends, so no lookup table
 // here can ever be exhaustive. The maps below are a good default, not a gate.
+import { DEFAULT_DISPLAY_FONT } from "./certificate-fonts";
 
 export interface CertificateFields {
-  /** Recipient's name, printed in the blackletter face. */
+  /** Recipient's name, printed in the chosen display face. */
   name: string;
   /** Course line, e.g. "PRODUCT DESIGN COURSE". */
   course: string;
@@ -15,6 +16,8 @@ export interface CertificateFields {
   issuedOn: string;
   /** Industry phrase dropped into the achievement statement. */
   industry: string;
+  /** Display face for the name/course/date — a `DISPLAY_FONTS` id. */
+  font: string;
 }
 
 const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
@@ -91,6 +94,7 @@ export function certificateDefaults(
     course: certificateCourseTitle(trackName),
     issuedOn: formatIssueDate(now),
     industry: certificateIndustry(trackName),
+    font: DEFAULT_DISPLAY_FONT,
   };
 }
 

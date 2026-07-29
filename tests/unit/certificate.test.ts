@@ -7,6 +7,7 @@ import {
   certificateFileName,
   formatIssueDate,
 } from "@/lib/certificate";
+import { DEFAULT_DISPLAY_FONT } from "@/lib/certificate-fonts";
 import { TRACKS } from "../../prisma/tracks.data";
 
 describe("certificateCourseTitle", () => {
@@ -91,6 +92,7 @@ describe("certificateDefaults", () => {
       course: "PRODUCT DESIGN COURSE",
       issuedOn: "29 JULY, 2026",
       industry: "product (UI/UX) design",
+      font: DEFAULT_DISPLAY_FONT,
     });
   });
 });

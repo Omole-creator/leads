@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +16,7 @@ import {
   certificateStatement,
   type CertificateFields,
 } from "@/lib/certificate";
+import { DISPLAY_FONTS } from "@/lib/certificate-fonts";
 
 // The preview is a server render, so it is throttled while the admin types.
 const PREVIEW_DEBOUNCE_MS = 450;
@@ -142,6 +144,22 @@ export function CertificateDialog({
               value={fields.industry}
               onChange={(e) => set("industry")(e.target.value)}
             />
+          </label>
+          <label className="block sm:col-span-2">
+            <span className="mb-1 block text-xs font-medium text-muted-foreground">
+              Font (name, course and date)
+            </span>
+            <Select
+              aria-label="Certificate font"
+              value={fields.font}
+              onChange={(e) => set("font")(e.target.value)}
+            >
+              {DISPLAY_FONTS.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.label}
+                </option>
+              ))}
+            </Select>
           </label>
         </div>
 

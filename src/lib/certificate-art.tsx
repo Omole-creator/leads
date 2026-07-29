@@ -132,6 +132,9 @@ export function certificateElement(
 ) {
   const name = fields.name.trim().toUpperCase();
   const course = fields.course.trim();
+  // Sizes below are calibrated against the widest display face; a narrower one
+  // is scaled up so it still fills the rule.
+  const scale = (n: number) => Math.round(n * assets.displayScale);
 
   return (
     <div
@@ -202,7 +205,7 @@ export function certificateElement(
         <div
           style={{
             fontFamily: "Display",
-            fontSize: fitSize(name, [70, 56, 44, 37]),
+            fontSize: scale(fitSize(name, [70, 56, 44, 37])),
             letterSpacing: 5,
             marginTop: 12,
           }}
@@ -219,7 +222,7 @@ export function certificateElement(
         <div
           style={{
             fontFamily: "Display",
-            fontSize: fitSize(course, [50, 44, 37, 32]),
+            fontSize: scale(fitSize(course, [50, 44, 37, 32])),
             letterSpacing: 4,
             marginTop: 10,
           }}
@@ -234,7 +237,7 @@ export function certificateElement(
         <div
           style={{
             fontFamily: "Display",
-            fontSize: 42,
+            fontSize: scale(42),
             letterSpacing: 4,
             marginTop: 8,
           }}

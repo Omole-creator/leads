@@ -13,7 +13,7 @@ import {
 export async function renderCertificatePng(
   fields: CertificateFields,
 ): Promise<Uint8Array> {
-  const assets = certificateAssets();
+  const assets = certificateAssets(fields.font);
   const res = new ImageResponse(certificateElement(fields, assets), {
     width: CERT_WIDTH,
     height: CERT_HEIGHT,

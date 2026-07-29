@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { certificateAssets } from "@/lib/certificate-assets";
+import {
+  DISPLAY_FONTS,
+  DEFAULT_DISPLAY_FONT,
+  displayFont,
+} from "@/lib/certificate-fonts";
 
 // Read the 4-byte table tags out of a TrueType/OpenType file's table directory.
 function tableTags(data: Buffer): string[] {
@@ -10,6 +15,40 @@ function tableTags(data: Buffer): string[] {
   }
   return tags;
 }
+
+describe("DISPLAY_FONTS", () => {
+  it("has unique ids and a resolvable default", () => {
+    const ids = DISPLAY_FONTS.map((f) => f.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids).toContain(DEFAULT_DISPLAY_FONT);
+    expect(displayFont(DEFAULT_DISPLAY_FONT).id).toBe(DEFAULT_DISPLAY_FONT);
+  });
+
+  it("falls back to the default for an unknown or missing id", () => {
+    expect(displayFont("comic-sans").id).toBe(DEFAULT_DISPLAY_FONT);
+    expect(displayFont(undefined).id).toBe(DEFAULT_DISPLAY_FONT);
+  });
+
+  it("loads every offered face, and each one is a static TTF", () => {
+    for (const face of DISPLAY_FONTS) {
+      const display = certificateAssets(face.id).fonts.find(
+        (f) => f.name === "Display",
+      );
+      expect(display, `${face.id} must register a Display face`).toBeDefined();
+      expect(tableTags(display!.data), `${face.label} must not be variable`)
+        .not.toContain("fvar");
+      expect(display!.data.toString("ascii", 0, 4)).not.toBe("wOF2");
+    }
+  });
+
+  it("carries a sane size multiplier for each face", () => {
+    for (const face of DISPLAY_FONTS) {
+      expect(certificateAssets(face.id).displayScale).toBe(face.sizeScale);
+      expect(face.sizeScale).toBeGreaterThanOrEqual(1);
+      expect(face.sizeScale).toBeLessThanOrEqual(1.25);
+    }
+  });
+});
 
 describe("certificateAssets", () => {
   const assets = certificateAssets();

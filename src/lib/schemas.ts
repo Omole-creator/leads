@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  DISPLAY_FONT_IDS,
+  DEFAULT_DISPLAY_FONT,
+} from "./certificate-fonts";
 
 // Ingest captures only the 6 owner-confirmed fields. No amountPaid (the form
 // has no payment field); leads start at amountPaid=0, balanceLeft=track.cost.
@@ -97,6 +101,9 @@ export const certificateFieldsSchema = z.object({
   course: z.string().min(1).max(160),
   issuedOn: z.string().min(1).max(60),
   industry: z.string().min(1).max(120),
+  // Display face for the name/course/date. Enumerated so a request can only
+  // ever name a font that is actually vendored.
+  font: z.enum(DISPLAY_FONT_IDS).default(DEFAULT_DISPLAY_FONT),
 });
 
 export const certificateRenderSchema = certificateFieldsSchema.extend({

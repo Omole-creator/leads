@@ -9,7 +9,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Select } from "@/components/ui/select";
 import { certificateDefaults } from "@/lib/certificate";
+import { DISPLAY_FONTS, DEFAULT_DISPLAY_FONT } from "@/lib/certificate-fonts";
 
 export interface BulkCertificateStudent {
   id: string;
@@ -59,6 +61,7 @@ export function BulkCertificateSend({
   const [stopped, setStopped] = useState(false);
   const [rows, setRows] = useState<Record<string, RowState>>({});
   const [excluded, setExcluded] = useState<Set<string>>(new Set());
+  const [font, setFont] = useState<string>(DEFAULT_DISPLAY_FONT);
   // A ref, not state: the loop needs to read the current value between awaits,
   // and a state value captured at render time would always read stale.
   const stopRef = useRef(false);
@@ -101,6 +104,7 @@ export function BulkCertificateSend({
     setRows({});
     setStopped(false);
     setExcluded(new Set());
+    setFont(DEFAULT_DISPLAY_FONT);
     stopRef.current = false;
   }
 
@@ -117,7 +121,7 @@ export function BulkCertificateSend({
       if (stopRef.current) break;
 
       mark(s.id, { outcome: "sending" });
-      const fields = certificateDefaults(s.fullName, s.trackName);
+      const fields = { ...certificateDefaults(s.fullName, s.trackName), font };
       try {
         const res = await fetch("/api/certificates/send", {
           method: "POST",
@@ -180,6 +184,24 @@ export function BulkCertificateSend({
           certificate dated today, as a PDF attachment. Sent one at a time, so
           keep this tab open until it finishes.
         </DialogDescription>
+
+        <label className="mt-4 block">
+          <span className="mb-1 block text-xs font-medium text-muted-foreground">
+            Font for the name, course and date (applies to all of them)
+          </span>
+          <Select
+            aria-label="Certificate font"
+            value={font}
+            disabled={running}
+            onChange={(e) => setFont(e.target.value)}
+          >
+            {DISPLAY_FONTS.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.label}
+              </option>
+            ))}
+          </Select>
+        </label>
 
         <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
           <span className="text-muted-foreground">Quick pick:</span>
