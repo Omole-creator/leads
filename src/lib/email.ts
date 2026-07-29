@@ -190,6 +190,71 @@ export async function sendWelcomeEmail(data: WelcomeEmail): Promise<boolean> {
   }
 }
 
+// Certificate of Completion, sent to the student with the PDF attached.
+const CERTIFICATE_SUBJECT = "Your {{track}} certificate, {{firstName}}";
+const CERTIFICATE_BODY = `Hi {{firstName}},
+
+Congratulations. You have completed the {{track}} program at JobMingle Academy.
+
+**Your certificate is attached** as a PDF. Print it, save it, or attach it to a job application.
+
+One thing that helps: post it on LinkedIn and tag JobMingle. Employers in our network watch that feed.
+
+Well done. We are proud of you.
+
+The JobMingle Team`;
+
+export interface CertificateEmail {
+  to: string;
+  firstName: string;
+  trackName: string;
+  fileName: string;
+  pdf: Uint8Array;
+}
+
+/**
+ * Email a student their certificate, with the PDF attached.
+ *
+ * LOAD-BEARING: this is a SINGLE `emails.send`, never `resend.batch.send`.
+ * Resend rejects attachments on the batch endpoint, which is why certificates
+ * are sent one student at a time and `sendBulkEmails` above is left alone.
+ * Never throws — returns false if the send was skipped or failed.
+ */
+export async function sendCertificateEmail(
+  data: CertificateEmail,
+): Promise<boolean> {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set — skipping certificate email.");
+    return false;
+  }
+  const vars = { firstName: data.firstName, track: data.trackName };
+  const rendered = renderTemplate(CERTIFICATE_BODY, vars);
+  try {
+    const { error } = await resend.emails.send({
+      from: FROM,
+      replyTo: REPLY_TO,
+      to: data.to,
+      subject: renderTemplate(CERTIFICATE_SUBJECT, vars),
+      text: bodyToText(rendered),
+      html: bodyToHtml(rendered),
+      attachments: [
+        {
+          filename: `${data.fileName}.pdf`,
+          content: Buffer.from(data.pdf),
+        },
+      ],
+    });
+    if (error) {
+      console.error("[email] certificate send error:", error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("[email] failed to send certificate email:", err);
+    return false;
+  }
+}
+
 export interface LeadAssignedEmail {
   repName: string;
   repEmail: string;

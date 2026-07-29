@@ -342,6 +342,51 @@ Domain `jobmingle.co` is verified in Resend; `RESEND_API_KEY`/`RESEND_FROM_EMAIL
 Verify deliveries in the **Resend dashboard → Logs**. `jobmingle.co` is also used
 by Kit (email marketing) — they coexist (separate DKIM).
 
+## Certificates of Completion
+
+Admin issues a student's certificate from a dialog (`CertificateDialog`), mounted
+on **`/admin/attendance`** (each student row) and on the **lead page** for a
+`CLOSED_WON` lead. It shows for `studentStatus === "COMPLETED"` **or** stage
+`CLOSED_WON`. **Nothing is persisted** — no `Certificate` model, no certificate
+ID, no schema change; only an `ActivityLog` row (`CERTIFICATE_SENT`) after a send.
+
+- **Design**: typography/layout from the reference certificate (blackletter
+  display face, centred stack, rules with dot terminals, "Issued on", the
+  achievement statement, signature block); **edges are JobMingle's** — the
+  gold/black corner waves, black corner brackets and faint "M" watermark are
+  hand-authored SVG in `certificate-art.tsx`, because the original artwork only
+  ever existed as a flat PNG with text baked in. Source PNGs (`jo.png`, `f.png`,
+  `jobm.png`, `logoo.png`) sit at the repo root as references.
+- **Rendering**: `next/og`'s `ImageResponse` (satori + resvg, bundled in Next —
+  no install) at **2000×1414** (√2), wrapped into one A4-landscape page by
+  **`pdf-lib`** in `src/lib/pdf.ts`. `renderCertificatePng` in
+  `certificate-render.ts` is the single entry point, so the dialog's live preview
+  is literally the file the student receives.
+- **Routes**: `GET /api/certificates/render` (admin; `format=png|pdf`,
+  `download=1` to force a download, inline otherwise so the preview `<img>`
+  works) and `POST /api/certificates/send` (admin; recipient address is read
+  from the lead, **never** from the request body).
+- **Text** lives in `src/lib/certificate.ts` (pure, unit-tested):
+  `certificateCourseTitle` (track name + " COURSE"), `certificateIndustry`
+  (track → industry phrase for the statement), `certificateStatement`,
+  `formatIssueDate` ("29 JULY, 2026"), `certificateDefaults`. The industry map
+  can never be exhaustive because `ingest.ts` auto-creates tracks — which is why
+  **all four fields (name / course / issued on / industry) stay editable** in the
+  dialog. The **date is re-stamped from `new Date()` every time the dialog
+  opens**, never static.
+- **Attachments ⇒ single send.** `sendCertificateEmail` uses
+  `resend.emails.send` with `attachments`. Resend rejects attachments on the
+  **batch** endpoint, so this must never be folded into `sendBulkEmails`, and
+  certificates are sent one student at a time.
+- **Assets** (`src/assets/`): fonts must be **TTF/OTF — satori cannot decode
+  woff2** (`UnifrakturCook-Bold`, `Poppins-Regular/SemiBold`). The logo and
+  signature are cropped to their non-transparent bounds and inlined as base64
+  data URIs by `certificate-assets.ts` (satori can't fetch a relative URL and the
+  app is behind auth). `next.config.mjs` traces `./src/assets/**/*` into the
+  serverless bundle — without it the route 500s on Vercel while working locally.
+- Satori has no shrink-to-fit, so `fitSize()` steps the name/course size down for
+  long strings; every element with 2+ children needs an explicit `display: flex`.
+
 ## Recharts gotchas (cost real debugging time)
 
 - Axes must be **direct children** of `BarChart` — Recharts v2 ignores axis props

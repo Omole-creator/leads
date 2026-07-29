@@ -10,6 +10,7 @@ import { FollowUpLogPanel } from "@/components/FollowUpLogPanel";
 import { NotesPanel } from "@/components/NotesPanel";
 import { ReassignControl } from "@/components/ReassignControl";
 import { DeleteLeadButton } from "@/components/DeleteLeadButton";
+import { CertificateDialog } from "@/components/admin/CertificateDialog";
 import { commissionForTrackCost } from "@/lib/commission";
 import { formatNaira } from "@/lib/utils";
 
@@ -49,11 +50,22 @@ export default async function LeadDetailPage({
             {lead.track.name} · {lead.cohort.name}
           </p>
         </div>
-        <div className="w-56">
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">
-            Stage
-          </label>
-          <StageControl leadId={lead.id} stage={lead.stage} />
+        <div className="flex items-end gap-2">
+          {/* Won deals can be certified straight from here, even if the lead was
+              never enrolled onto a tutor's track. */}
+          {isAdmin && lead.stage === "CLOSED_WON" && (
+            <CertificateDialog
+              leadId={lead.id}
+              fullName={lead.fullName}
+              trackName={lead.track.name}
+            />
+          )}
+          <div className="w-56">
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">
+              Stage
+            </label>
+            <StageControl leadId={lead.id} stage={lead.stage} />
+          </div>
         </div>
       </div>
 

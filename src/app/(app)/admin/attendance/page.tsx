@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { attendanceStats, cohortOptions, resolveCohort } from "@/lib/students";
 import { BarChartCard } from "@/components/charts/BarChartCard";
 import { StudentControls } from "@/components/admin/StudentControls";
+import { CertificateDialog } from "@/components/admin/CertificateDialog";
 import { EnrollStudent } from "@/components/admin/EnrollStudent";
 import { CohortFilter } from "@/components/CohortFilter";
 import { MetricCard } from "@/components/MetricCard";
@@ -38,6 +39,9 @@ export default async function AdminAttendancePage({
         studentStatus: true,
         studentTrackId: true,
         studentTrack: { select: { name: true } },
+        // Drives the Certificate button (COMPLETED students, or any won deal).
+        stage: true,
+        track: { select: { name: true } },
       },
     }),
     prisma.track.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
@@ -183,12 +187,22 @@ export default async function AdminAttendancePage({
                   {s.studentTrack?.name ?? "No track"} · {s.studentStatus}
                 </p>
               </div>
-              <StudentControls
-                leadId={s.id}
-                status={s.studentStatus}
-                trackId={s.studentTrackId}
-                tracks={tracks}
-              />
+              <div className="flex flex-wrap items-center gap-2">
+                {(s.studentStatus === "COMPLETED" ||
+                  s.stage === "CLOSED_WON") && (
+                  <CertificateDialog
+                    leadId={s.id}
+                    fullName={s.fullName}
+                    trackName={s.studentTrack?.name ?? s.track.name}
+                  />
+                )}
+                <StudentControls
+                  leadId={s.id}
+                  status={s.studentStatus}
+                  trackId={s.studentTrackId}
+                  tracks={tracks}
+                />
+              </div>
             </div>
           ))}
           {totalStudents === 0 && (

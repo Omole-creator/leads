@@ -90,6 +90,25 @@ export const studentUpdateSchema = z.object({
   cohortId: z.string().optional(),
 });
 
+// Certificate of Completion. Every field is admin-editable before export, so
+// they arrive as free text rather than being re-derived server-side.
+export const certificateFieldsSchema = z.object({
+  name: z.string().min(1).max(120),
+  course: z.string().min(1).max(160),
+  issuedOn: z.string().min(1).max(60),
+  industry: z.string().min(1).max(120),
+});
+
+export const certificateRenderSchema = certificateFieldsSchema.extend({
+  format: z.enum(["png", "pdf"]).default("png"),
+  // "1" forces a download; otherwise it renders inline for the live preview.
+  download: z.enum(["0", "1"]).optional(),
+});
+
+export const certificateSendSchema = certificateFieldsSchema.extend({
+  leadId: z.string().min(1),
+});
+
 export const attendanceSchema = z.object({
   trackId: z.string().min(1),
   date: z.coerce.date(),
