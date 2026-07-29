@@ -350,9 +350,21 @@ on **`/admin/attendance`** (each student row) and on the **lead page** for a
 `CLOSED_WON`. **Nothing is persisted** — no `Certificate` model, no certificate
 ID, no schema change; only an `ActivityLog` row (`CERTIFICATE_SENT`) after a send.
 
-- **Design**: typography/layout from the reference certificate (blackletter
-  display face, centred stack, rules with dot terminals, "Issued on", the
-  achievement statement, signature block); **edges are JobMingle's** — the
+- **Bulk send**: `/admin/attendance` has a **Certificates** section that emails
+  every **COMPLETED** student in the selected cohort (won ≠ finished, so
+  `CLOSED_WON` is *not* included in bulk; students with no email are skipped).
+  `BulkCertificateSend` drives it from the **browser, one student per request**,
+  reusing `POST /api/certificates/send`, with progress, per-student status and a
+  "stop after this one" button. **Deliberately not a server-side loop**: N
+  renders + N emails in one serverless invocation blows the function timeout, and
+  attachments can't use Resend's batch endpoint so there is no single fast call
+  to make. One failure can't take the run down. The tab must stay open.
+- **Design**: layout from the reference certificate (centred stack, rules with
+  dot terminals, "Issued on", the achievement statement, signature block).
+  Blackletter (`UnifrakturCook`) is the **heading only** — it was tried on the
+  name/course/date too and was too hard to read, so those use a legible serif
+  display face (`Spectral-Bold`, registered as family **"Display"**).
+  **Edges are JobMingle's** — the
   gold/black corner waves, black corner brackets and faint "M" watermark are
   hand-authored SVG in `certificate-art.tsx`, because the original artwork only
   ever existed as a flat PNG with text baked in. Source PNGs (`jo.png`, `f.png`,
@@ -378,8 +390,11 @@ ID, no schema change; only an `ActivityLog` row (`CERTIFICATE_SENT`) after a sen
   `resend.emails.send` with `attachments`. Resend rejects attachments on the
   **batch** endpoint, so this must never be folded into `sendBulkEmails`, and
   certificates are sent one student at a time.
-- **Assets** (`src/assets/`): fonts must be **TTF/OTF — satori cannot decode
-  woff2** (`UnifrakturCook-Bold`, `Poppins-Regular/SemiBold`). The logo and
+- **Assets** (`src/assets/`): fonts must be **static TTF/OTF**. Satori cannot
+  decode **woff2**, and a **variable** font throws while its `fvar` table is
+  parsed (`Cannot read properties of undefined`) — which is why Cinzel, which
+  Google Fonts now ships variable-only, could not be used.
+  `tests/unit/certificate-assets.test.ts` guards both rules. The logo and
   signature are cropped to their non-transparent bounds and inlined as base64
   data URIs by `certificate-assets.ts` (satori can't fetch a relative URL and the
   app is behind auth). `next.config.mjs` traces `./src/assets/**/*` into the

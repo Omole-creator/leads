@@ -5,6 +5,7 @@ import { attendanceStats, cohortOptions, resolveCohort } from "@/lib/students";
 import { BarChartCard } from "@/components/charts/BarChartCard";
 import { StudentControls } from "@/components/admin/StudentControls";
 import { CertificateDialog } from "@/components/admin/CertificateDialog";
+import { BulkCertificateSend } from "@/components/admin/BulkCertificateSend";
 import { EnrollStudent } from "@/components/admin/EnrollStudent";
 import { CohortFilter } from "@/components/CohortFilter";
 import { MetricCard } from "@/components/MetricCard";
@@ -39,8 +40,10 @@ export default async function AdminAttendancePage({
         studentStatus: true,
         studentTrackId: true,
         studentTrack: { select: { name: true } },
-        // Drives the Certificate button (COMPLETED students, or any won deal).
+        // Drives the Certificate button (COMPLETED students, or any won deal)
+        // and the bulk send.
         stage: true,
+        email: true,
         track: { select: { name: true } },
       },
     }),
@@ -64,6 +67,21 @@ export default async function AdminAttendancePage({
   const completed = students.filter((s) => s.studentStatus === "COMPLETED").length;
   const overallCompletion =
     totalStudents === 0 ? 0 : completed / totalStudents;
+
+  // Bulk certificates go to COMPLETED students only (a won deal means paid, not
+  // finished). Anyone without an email on file is left out — the send route
+  // would reject them anyway.
+  const certificateRecipients = students
+    .filter((s) => s.studentStatus === "COMPLETED" && s.email)
+    .map((s) => ({
+      id: s.id,
+      fullName: s.fullName,
+      trackName: s.studentTrack?.name ?? s.track.name,
+      email: s.email,
+    }));
+  const cohortLabel = cohortId
+    ? (cohorts.find((c) => c.id === cohortId)?.name ?? "this cohort")
+    : "all cohorts";
 
   return (
     <div className="space-y-6">
@@ -169,6 +187,24 @@ export default async function AdminAttendancePage({
           }))}
           tracks={tracks}
           cohortId={enrollCohort?.id ?? null}
+        />
+      </section>
+
+      {/* Certificates for everyone who finished */}
+      <section className="space-y-3 rounded-xl border border-brand-black/10 p-4">
+        <div>
+          <h2 className="text-lg font-semibold">Certificates</h2>
+          <p className="text-sm text-muted-foreground">
+            Email a Certificate of Completion to every student marked{" "}
+            <span className="font-medium text-brand-black">COMPLETED</span> in{" "}
+            <span className="font-medium text-brand-black">{cohortLabel}</span>,
+            dated today. Or use the Certificate button on a single student below
+            to check and edit theirs first.
+          </p>
+        </div>
+        <BulkCertificateSend
+          students={certificateRecipients}
+          cohortLabel={cohortLabel}
         />
       </section>
 

@@ -1,8 +1,10 @@
 // The certificate artwork, as a satori-compatible element tree.
 //
-// Typography and layout follow the reference certificate (blackletter display
-// face, centred stack, thin rules with dot terminals, "Issued on" block, the
-// achievement statement, signature block). The EDGES are JobMingle's own: the
+// Layout follows the reference certificate (centred stack, thin rules with dot
+// terminals, "Issued on" block, the achievement statement, signature block).
+// The blackletter face is kept for the heading only: it was tried on the name,
+// course and date too and was too hard to read, so those use a legible serif
+// display face ("Display" = Spectral Bold). The EDGES are JobMingle's own: the
 // gold/black corner waves, the black ornamental corner brackets and the faint
 // "M" watermark are re-authored here as vector SVG, because the original
 // artwork only exists as a flat PNG with text baked into it.
@@ -189,8 +191,8 @@ export function certificateElement(
 
         <div
           style={{
-            fontFamily: "Unifraktur",
-            fontSize: fitSize(name, [80, 66, 52]),
+            fontFamily: "Display",
+            fontSize: fitSize(name, [70, 56, 46]),
             letterSpacing: 5,
             marginTop: 12,
           }}
@@ -206,8 +208,8 @@ export function certificateElement(
 
         <div
           style={{
-            fontFamily: "Unifraktur",
-            fontSize: fitSize(course, [56, 48, 40]),
+            fontFamily: "Display",
+            fontSize: fitSize(course, [50, 44, 37]),
             letterSpacing: 4,
             marginTop: 10,
           }}
@@ -221,8 +223,8 @@ export function certificateElement(
 
         <div
           style={{
-            fontFamily: "Unifraktur",
-            fontSize: 46,
+            fontFamily: "Display",
+            fontSize: 42,
             letterSpacing: 4,
             marginTop: 8,
           }}
