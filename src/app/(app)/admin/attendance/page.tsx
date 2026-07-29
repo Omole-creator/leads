@@ -68,16 +68,18 @@ export default async function AdminAttendancePage({
   const overallCompletion =
     totalStudents === 0 ? 0 : completed / totalStudents;
 
-  // Bulk certificates go to COMPLETED students only (a won deal means paid, not
-  // finished). Anyone without an email on file is left out — the send route
-  // would reject them anyway.
+  // Every enrolled student in the cohort is offered for bulk certificates, not
+  // just the ones marked COMPLETED — a cohort can finish without every status
+  // having been updated. The admin unticks whoever isn't done. Students with no
+  // email on file are left out; the send route would reject them anyway.
   const certificateRecipients = students
-    .filter((s) => s.studentStatus === "COMPLETED" && s.email)
+    .filter((s) => s.email)
     .map((s) => ({
       id: s.id,
       fullName: s.fullName,
       trackName: s.studentTrack?.name ?? s.track.name,
       email: s.email,
+      studentStatus: s.studentStatus,
     }));
   const cohortLabel = cohortId
     ? (cohorts.find((c) => c.id === cohortId)?.name ?? "this cohort")
@@ -195,11 +197,11 @@ export default async function AdminAttendancePage({
         <div>
           <h2 className="text-lg font-semibold">Certificates</h2>
           <p className="text-sm text-muted-foreground">
-            Email a Certificate of Completion to every student marked{" "}
-            <span className="font-medium text-brand-black">COMPLETED</span> in{" "}
-            <span className="font-medium text-brand-black">{cohortLabel}</span>,
-            dated today. Or use the Certificate button on a single student below
-            to check and edit theirs first.
+            Send a Certificate of Completion, dated today, to the students of{" "}
+            <span className="font-medium text-brand-black">{cohortLabel}</span>.
+            Everyone is listed and ticked — untick anyone who hasn&apos;t
+            finished and send the rest. Or use the Certificate button on a single
+            student below to check and edit theirs first.
           </p>
         </div>
         <BulkCertificateSend

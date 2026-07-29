@@ -350,9 +350,14 @@ on **`/admin/attendance`** (each student row) and on the **lead page** for a
 `CLOSED_WON`. **Nothing is persisted** — no `Certificate` model, no certificate
 ID, no schema change; only an `ActivityLog` row (`CERTIFICATE_SENT`) after a send.
 
-- **Bulk send**: `/admin/attendance` has a **Certificates** section that emails
-  every **COMPLETED** student in the selected cohort (won ≠ finished, so
-  `CLOSED_WON` is *not* included in bulk; students with no email are skipped).
+- **Bulk send**: `/admin/attendance` has a **Certificates** section listing
+  **every enrolled student in the selected cohort**, all **pre-ticked**, each one
+  removable — a cohort can finish without every `studentStatus` having been
+  updated, so the admin must not be forced to mark people COMPLETED first. Each
+  row shows its status so the unfinished ones are obvious, plus quick picks
+  (**All / Only completed / None**); the Send button count follows the selection
+  and the batch is snapshotted at Start. Students with no email on file are left
+  out of the list entirely.
   `BulkCertificateSend` drives it from the **browser, one student per request**,
   reusing `POST /api/certificates/send`, with progress, per-student status and a
   "stop after this one" button. **Deliberately not a server-side loop**: N
