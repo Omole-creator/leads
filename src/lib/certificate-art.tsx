@@ -3,8 +3,9 @@
 // Layout follows the reference certificate (centred stack, thin rules with dot
 // terminals, "Issued on" block, the achievement statement, signature block).
 // The blackletter face is kept for the heading only: it was tried on the name,
-// course and date too and was too hard to read, so those use a legible serif
-// display face ("Display" = Spectral Bold). The EDGES are JobMingle's own: the
+// course and date too and was too hard to read, so those use a decorative but
+// legible face ("Display" = Cinzel Decorative Bold). The EDGES are JobMingle's
+// own: the
 // gold/black corner waves, the black ornamental corner brackets and the faint
 // "M" watermark are re-authored here as vector SVG, because the original
 // artwork only exists as a flat PNG with text baked into it.
@@ -87,8 +88,17 @@ function frameSvg(): string {
 /** The frame as a data URI. Built once — the SVG has no per-certificate state. */
 const FRAME_URI = `data:image/svg+xml;base64,${Buffer.from(frameSvg()).toString("base64")}`;
 
-/** Satori cannot shrink text to fit, so step the size down for long strings. */
-function fitSize(text: string, sizes: [number, number, number]): number {
+/**
+ * Satori cannot shrink text to fit, so step the size down for long strings.
+ * Sizes are ordered longest-fitting-last and keyed off length alone, which is a
+ * rough proxy for width but enough to keep even a very long Nigerian full name
+ * inside the 1300px rule.
+ */
+function fitSize(
+  text: string,
+  sizes: [number, number, number, number],
+): number {
+  if (text.length > 36) return sizes[3];
   if (text.length > 30) return sizes[2];
   if (text.length > 20) return sizes[1];
   return sizes[0];
@@ -192,7 +202,7 @@ export function certificateElement(
         <div
           style={{
             fontFamily: "Display",
-            fontSize: fitSize(name, [70, 56, 46]),
+            fontSize: fitSize(name, [70, 56, 44, 37]),
             letterSpacing: 5,
             marginTop: 12,
           }}
@@ -209,7 +219,7 @@ export function certificateElement(
         <div
           style={{
             fontFamily: "Display",
-            fontSize: fitSize(course, [50, 44, 37]),
+            fontSize: fitSize(course, [50, 44, 37, 32]),
             letterSpacing: 4,
             marginTop: 10,
           }}

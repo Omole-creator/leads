@@ -58,10 +58,10 @@ export function certificateAssets(): CertificateAssets {
         style: "normal",
       },
       // The name, course and date. A blackletter face was tried here first and
-      // was too hard to read at a glance; this is stylistic but legible.
+      // was too hard to read at a glance; this is decorative but legible.
       {
         name: "Display",
-        data: read("fonts", "Spectral-Bold.ttf"),
+        data: read("fonts", "CinzelDecorative-Bold.ttf"),
         weight: 700,
         style: "normal",
       },

@@ -367,8 +367,8 @@ ID, no schema change; only an `ActivityLog` row (`CERTIFICATE_SENT`) after a sen
 - **Design**: layout from the reference certificate (centred stack, rules with
   dot terminals, "Issued on", the achievement statement, signature block).
   Blackletter (`UnifrakturCook`) is the **heading only** — it was tried on the
-  name/course/date too and was too hard to read, so those use a legible serif
-  display face (`Spectral-Bold`, registered as family **"Display"**).
+  name/course/date too and was too hard to read, so those use a decorative but
+  legible face (`CinzelDecorative-Bold`, registered as family **"Display"**).
   **Edges are JobMingle's** — the
   gold/black corner waves, black corner brackets and faint "M" watermark are
   hand-authored SVG in `certificate-art.tsx`, because the original artwork only
