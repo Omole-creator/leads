@@ -11,6 +11,10 @@ round-robin, tracks it through a pipeline, records follow-ups, and shows a
 dashboard. Built from Technical Spec v1.0; deviations are in
 `~/.claude/plans/here-s-the-spec-golden-octopus.md`.
 
+It also hosts a **second, separate business line**: cold recruitment outreach to
+hiring companies (`/admin/outreach`). That side shares no data with the course
+pipeline — see "Recruitment outreach" below.
+
 - **Live app:** https://jobmingleleads.vercel.app (Vercel, auto-deploys on push to `main`)
 - **Repo:** https://github.com/Omole-creator/leads
 - **DB:** Supabase Postgres (project `jobmingle-leads`, eu-west-1)
@@ -341,6 +345,74 @@ Domain `jobmingle.co` is verified in Resend; `RESEND_API_KEY`/`RESEND_FROM_EMAIL
 
 Verify deliveries in the **Resend dashboard → Logs**. `jobmingle.co` is also used
 by Kit (email marketing) — they coexist (separate DKIM).
+
+## Recruitment outreach (cold email to companies)
+
+JobMingle's **second business line**: placing talent *at* companies, as opposed to
+training students. Entirely separate from the `Lead` pipeline (no closers, no
+cohorts, no tracks, no commission) and from `/admin/email` — the only shared code
+is the render/send plumbing. Admin-only, at **`/admin/outreach`** (contacts,
+import, batches) and **`/admin/outreach/email`** (composer, drafts, sent history).
+
+**Models** (`0008_outreach_contacts`): `CompanyContact` (email `@unique`, plus 10
+nullable text columns — firstName, companyName, jobTitle, industry, companySize,
+location, hiringRoles, hiringSource, triggerEvent, personalization — `batchId`,
+`importedAt`, `unsubscribed`, `lastEmailedAt`, `emailCount`), `OutreachBatch`
+(one named+dated CSV upload; `@unique` name), `OutreachCampaign` (own table, NOT
+columns on `EmailCampaign` — `/admin/email` does an unfiltered
+`findMany({take:100})` and outreach sends would push course drafts out of it;
+also carries `fromName`/`variant`/`filters Json`).
+
+- **Missing means NULL, never `""`.** Contacts come from scraped CSVs where most
+  columns are blank. Storing NULL makes every "has this field" filter a plain
+  `{ not: null }` and dodges Prisma's version-dependent `not`-vs-NULL semantics.
+  Enforced in exactly one place: `blankToNull()` in `outreach-constants.ts`, wired
+  into the zod schemas as a `.transform()`, so `""` is not representable in the
+  parsed type.
+- **Token fallbacks.** `renderTemplate` (`email-template.ts`) now accepts
+  `{{first_name|there}}`. **Backward compatible by construction**: `|` is not in
+  `\w`, so that form never matched the old regex — only already-broken strings
+  change. Without it a ragged row sends "Hi ,". Fallbacks are trimmed, so
+  `{{ company | your team }}` == `{{company|your team}}`.
+- **Four hard-coded variants** in `outreach-templates.ts` (A active hiring /
+  B no known hiring / C founders+trigger / D HR), each carrying `requires` — the
+  tick-boxes the composer auto-ticks on load, so variant A can only reach contacts
+  that actually have a hiring role. `tests/unit/outreach-templates.test.ts` asserts
+  every token is in `OUTREACH_TOKENS` **and** carries a `|fallback`, and that an
+  all-empty render leaves no `{{`, double space or orphaned punctuation.
+- **Sender = display name only.** `SENDER_IDENTITIES` in `outreach-constants.ts`:
+  JobMingle Limited / JobMingle Academy / **Omole**. All send from
+  `RESEND_FROM_EMAIL`; `sendBulkEmails(messages, { fromName })` is a new optional
+  2nd arg (1-arg callers untouched) and `sanitizeDisplayName` strips `\r\n<>"`.
+  The API takes the **enum id**, never a free-form name, so header injection is
+  not representable. ⚠️ Cold outreach shares sender reputation with the welcome /
+  assignment / certificate emails on `contact@jobmingle.co`; the owner accepted
+  this. If deliverability degrades, move outreach to a verified subdomain.
+- **Footer** is parameterized: `bodyToHtml(text, { footer })`, defaulting to the
+  old course-enquiry line. `outreachFooter(url)` renders `JobMingle Limited` /
+  `49/51 Mumunie Street, Lagos, Nigeria` / Unsubscribe. It is injected **outside**
+  the escaped body, i.e. **trusted HTML** — never build it from user input.
+- **Unsubscribe** is a public HMAC-signed link (`/api/outreach/unsubscribe?c=&t=`,
+  keyed on `AUTH_SECRET`, no new env var) and is **exempted in `src/middleware.ts`**.
+  The send path always forces `unsubscribed:false`.
+- **CSV both ways.** Import reuses `parseCsv`/`field`; a row needs only a valid
+  email. Writes are chunked `createMany({skipDuplicates:true})` (500) — not a
+  per-row loop, which would blow the function timeout, and interactive
+  `$transaction` is unavailable on the pgbouncer transaction pooler. Duplicate
+  emails are skipped unless "update existing" is ticked (then updated and moved to
+  the new batch). Export (`toCsv`/`csvCell` in `csv.ts`, new) emits **every header
+  on every row**, blank where unknown, BOM-prefixed for Excel, so export →
+  edit → re-import round-trips. Headers double as import aliases.
+- **Date filter is `importedAt`**, and the route pushes `addedTo` to end-of-day —
+  a bare `<input type="date">` value is midnight UTC and `lte` would silently drop
+  everything added that day. (`leadWhere` still has this latent bug; don't copy it.)
+- **Order is load-bearing in the send route**: `renderTemplate` runs *before*
+  `bodyToHtml`, so CSV-sourced values go through `escapeHtml`. The composer preview
+  `<iframe srcDoc>` has no `sandbox` and is same-origin with `/admin/outreach`.
+- Recipient picker holds an **`excluded` Set** (everyone pre-ticked), same idea as
+  `BulkCertificateSend` — but this one does *not* loop per row: no attachments, so
+  one batched `POST /api/outreach/send` is right.
+- No send cap: Resend enforces its own limits.
 
 ## Certificates of Completion
 

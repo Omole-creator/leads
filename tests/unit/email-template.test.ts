@@ -134,4 +134,50 @@ describe("renderTemplate", () => {
       "Hi Ada, done",
     );
   });
+
+  // Pins the pre-fallback behaviour: adding `|fallback` support must not change
+  // what the welcome / certificate / scholarship templates already produce.
+  it("still blanks a pipe-less token whose value is empty or missing", () => {
+    expect(renderTemplate("[{{a}}]", { a: "" })).toBe("[]");
+    expect(renderTemplate("[{{a}}]", {})).toBe("[]");
+    expect(renderTemplate("[{{a}}]", { a: "x" })).toBe("[x]");
+  });
+
+  it("uses the fallback when the value is missing, empty or whitespace", () => {
+    expect(renderTemplate("Hi {{first_name|there}},", {})).toBe("Hi there,");
+    expect(renderTemplate("Hi {{first_name|there}},", { first_name: "" })).toBe(
+      "Hi there,",
+    );
+    expect(
+      renderTemplate("Hi {{first_name|there}},", { first_name: "   " }),
+    ).toBe("Hi there,");
+  });
+
+  it("prefers the real value over the fallback", () => {
+    expect(
+      renderTemplate("Hi {{first_name|there}},", { first_name: "Sarah" }),
+    ).toBe("Hi Sarah,");
+  });
+
+  it("supports a multi-word fallback and tolerates spacing", () => {
+    expect(renderTemplate("{{ company | your team }}", {})).toBe("your team");
+  });
+
+  it("leaves a pipe in ordinary body text alone", () => {
+    expect(renderTemplate("a | b", {})).toBe("a | b");
+  });
+});
+
+describe("bodyToHtml — footer", () => {
+  it("keeps the course-enquiry footer when no shell is passed", () => {
+    expect(bodyToHtml("Hello")).toContain(
+      "You're receiving this because you enquired about JobMingle Academy.",
+    );
+  });
+
+  it("swaps in a supplied footer", () => {
+    const html = bodyToHtml("Hello", { footer: "JobMingle Limited<br/>Lagos" });
+    expect(html).toContain("JobMingle Limited<br/>Lagos");
+    expect(html).not.toContain("enquired about JobMingle Academy");
+  });
 });

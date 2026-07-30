@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { ingestSchema } from "@/lib/schemas";
+import {
+  companyContactCreateSchema,
+  ingestSchema,
+  outreachSendSchema,
+} from "@/lib/schemas";
 
 const valid = {
   fullName: "Adegbite Ezekiel oluwafemi",
@@ -51,5 +55,52 @@ describe("ingestSchema", () => {
         trackSelected: "Cybersecurity",
       }).success,
     ).toBe(true);
+  });
+});
+
+describe("outreachSendSchema", () => {
+  const valid = {
+    subject: "Hi",
+    body: "Hello",
+    fromName: "LIMITED",
+  };
+
+  it("accepts a known sender id", () => {
+    expect(outreachSendSchema.safeParse(valid).success).toBe(true);
+    expect(
+      outreachSendSchema.safeParse({ ...valid, fromName: "OMOLE" }).success,
+    ).toBe(true);
+  });
+
+  // The value lands in the From header, so a free-form display name would be a
+  // header-injection path. Only the enumerated ids are representable.
+  it("rejects a free-form display name", () => {
+    expect(
+      outreachSendSchema.safeParse({
+        ...valid,
+        fromName: "Evil\r\nBcc: x@y.com",
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe("companyContactCreateSchema", () => {
+  it("lower-cases the email and turns blank fields into null", () => {
+    const r = companyContactCreateSchema.safeParse({
+      email: " HR@XYZ.co ",
+      firstName: "   ",
+      companyName: " ABC Tech ",
+    });
+    expect(r.success).toBe(true);
+    if (!r.success) return;
+    expect(r.data.email).toBe("hr@xyz.co");
+    expect(r.data.firstName).toBeNull();
+    expect(r.data.companyName).toBe("ABC Tech");
+  });
+
+  it("rejects a bad email", () => {
+    expect(
+      companyContactCreateSchema.safeParse({ email: "nope" }).success,
+    ).toBe(false);
   });
 });

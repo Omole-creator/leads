@@ -54,6 +54,7 @@ model User {
   emailCampaigns EmailCampaign[]
   tracksTutored  Track[]         @relation("TrackTutor")
   attendanceTaken Attendance[]
+  outreachCampaigns OutreachCampaign[]
 }
 
 // A record of each bulk email sent, so admins can revisit past sends.
@@ -204,4 +205,69 @@ model ActivityLog {
   user User? @relation(fields: [userId], references: [id])
 
   @@index([leadId])
+}
+
+// ─── Cold outreach to COMPANIES (the recruitment/placement business line) ─────
+// Deliberately separate from Lead/Track/Cohort/EmailCampaign: these are hiring
+// companies, not course applicants. Optional text is stored as NULL when the CSV
+// left it blank, never "" — the "has this field" send filters are `{ not: null }`
+// and blankToNull() in src/lib/outreach.ts is the single enforcement point.
+
+// One named, dated CSV upload. Contacts point at it so a send can be scoped to
+// "the batch I imported on the 30th".
+model OutreachBatch {
+  id         String   @id @default(uuid())
+  name       String   @unique
+  note       String?
+  importedAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  contacts CompanyContact[]
+}
+
+model CompanyContact {
+  id              String    @id @default(uuid())
+  email           String    @unique // stored lower-cased and trimmed
+  firstName       String?
+  companyName     String?
+  jobTitle        String?
+  industry        String?
+  companySize     String?
+  location        String?
+  hiringRoles     String? // free text -> {{hiring_role}}
+  hiringSource    String? // LinkedIn | careers page | job board | ...
+  triggerEvent    String? // raised funding | expanding | hiring fast | ...
+  personalization String? // one or two hand-written lines
+  batchId         String?
+  importedAt      DateTime  @default(now())
+  unsubscribed    Boolean   @default(false)
+  lastEmailedAt   DateTime?
+  emailCount      Int       @default(0)
+  createdAt       DateTime  @default(now())
+
+  batch OutreachBatch? @relation(fields: [batchId], references: [id])
+
+  @@index([batchId])
+  @@index([importedAt])
+  @@index([industry])
+  @@index([unsubscribed])
+}
+
+// A record of each outreach send. Kept out of EmailCampaign so the course-email
+// history on /admin/email stays exactly as it was.
+model OutreachCampaign {
+  id         String   @id @default(uuid())
+  status     String   @default("SENT") // DRAFT | SENT
+  variant    String? // A | B | C | D, null when hand-written
+  fromName   String   @default("JobMingle Limited")
+  subject    String
+  body       String
+  filters    Json?
+  recipients Int      @default(0)
+  sent       Int      @default(0)
+  failed     Int      @default(0)
+  sentById   String?
+  createdAt  DateTime @default(now())
+
+  sentBy User? @relation(fields: [sentById], references: [id])
 }

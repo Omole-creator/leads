@@ -31,6 +31,7 @@ export function AppNav({ role }: { role: "ADMIN" | "SALES_REP" | "TUTOR" }) {
                 { href: "/admin/tracks", label: "Tracks" },
                 { href: "/admin/import", label: "Import" },
                 { href: "/admin/email", label: "Email" },
+                { href: "/admin/outreach", label: "Outreach" },
               ]
             : []),
         ];

@@ -3,6 +3,12 @@ import {
   DISPLAY_FONT_IDS,
   DEFAULT_DISPLAY_FONT,
 } from "./certificate-fonts";
+import {
+  blankToNull,
+  OUTREACH_REQUIREMENTS,
+  OUTREACH_VARIANT_IDS,
+  SENDER_IDENTITY_IDS,
+} from "./outreach-constants";
 
 // Ingest captures only the 6 owner-confirmed fields. No amountPaid (the form
 // has no payment field); leads start at amountPaid=0, balanceLeft=track.cost.
@@ -122,4 +128,103 @@ export const attendanceSchema = z.object({
   marks: z.array(
     z.object({ leadId: z.string().min(1), present: z.boolean() }),
   ),
+});
+
+// ─── Cold outreach ───────────────────────────────────────────────────────────
+
+// Every optional contact field runs through blankToNull, so "" is not
+// representable in the parsed type and can never reach Prisma. That keeps the
+// "has this field" send filters honest.
+const optionalText = (max: number) =>
+  z.string().max(max).optional().nullable().transform(blankToNull);
+
+const contactTextFields = {
+  firstName: optionalText(120),
+  companyName: optionalText(200),
+  jobTitle: optionalText(160),
+  industry: optionalText(120),
+  companySize: optionalText(60),
+  location: optionalText(160),
+  hiringRoles: optionalText(300),
+  hiringSource: optionalText(120),
+  triggerEvent: optionalText(300),
+  personalization: optionalText(600),
+};
+
+// Trimmed before .email() runs: a pasted address often carries a stray space,
+// and rejecting it as invalid would be baffling.
+export const companyContactCreateSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .email()
+    .max(200)
+    .transform((e) => e.toLowerCase()),
+  ...contactTextFields,
+  batchId: z.string().uuid().optional().nullable(),
+});
+
+export const companyContactUpdateSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .email()
+    .max(200)
+    .optional()
+    .transform((e) => (e ? e.toLowerCase() : undefined)),
+  ...contactTextFields,
+  batchId: z.string().uuid().nullable().optional(),
+  unsubscribed: z.boolean().optional(),
+});
+
+export const outreachBatchCreateSchema = z.object({
+  name: z.string().min(1).max(120),
+  note: optionalText(300),
+});
+
+export const outreachBatchUpdateSchema = z.object({
+  name: z.string().min(1).max(120).optional(),
+  note: optionalText(300),
+});
+
+export const outreachImportSchema = z.object({
+  csv: z.string().min(1),
+  batchName: z.string().min(1).max(120),
+  updateExisting: z.boolean().optional().default(false),
+});
+
+/** Filters as they arrive over the wire: dates are ISO strings. */
+export const outreachFilterSchema = z.object({
+  q: z.string().max(200).optional(),
+  batchId: z.string().max(64).optional(),
+  addedFrom: z.string().max(40).optional(),
+  addedTo: z.string().max(40).optional(),
+  industry: z.string().max(120).optional(),
+  jobTitle: z.string().max(160).optional(),
+  location: z.string().max(160).optional(),
+  companySize: z.string().max(60).optional(),
+  hiringSource: z.string().max(120).optional(),
+  require: z.array(z.enum(OUTREACH_REQUIREMENTS)).optional(),
+  notEmailedSince: z.string().max(40).optional(),
+  includeUnsubscribed: z.boolean().optional(),
+});
+
+export const outreachDraftSchema = z.object({
+  subject: z.string().max(300).optional().default(""),
+  body: z.string().max(20000).optional().default(""),
+  // An enum of ids, never a free-form display name: the value lands in the From
+  // header, where a CR/LF would let a caller append headers of its own.
+  fromName: z.enum(SENDER_IDENTITY_IDS).default("LIMITED"),
+  variant: z.enum(OUTREACH_VARIANT_IDS).optional().nullable(),
+  filters: outreachFilterSchema.optional(),
+});
+
+export const outreachSendSchema = z.object({
+  id: z.string().uuid().optional(),
+  subject: z.string().min(1).max(300),
+  body: z.string().min(1).max(20000),
+  fromName: z.enum(SENDER_IDENTITY_IDS),
+  variant: z.enum(OUTREACH_VARIANT_IDS).optional().nullable(),
+  filters: outreachFilterSchema.optional().default({}),
+  contactIds: z.array(z.string().uuid()).optional(),
 });

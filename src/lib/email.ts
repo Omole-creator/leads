@@ -22,16 +22,36 @@ export interface OutgoingEmail {
 }
 
 /**
+ * A display name goes straight into the From header, where a CR/LF would let a
+ * caller append headers of its own. Callers pass a fixed id rather than free
+ * text, so this is belt and braces.
+ */
+function sanitizeDisplayName(name: string): string {
+  return name.replace(/[\r\n<>"]/g, "").trim();
+}
+
+export interface BulkSendOptions {
+  /** Display name only — the address stays RESEND_FROM_EMAIL. */
+  fromName?: string;
+  replyTo?: string;
+}
+
+/**
  * Send a batch of personalized emails via Resend (chunked to 100/request, with
  * a small pause to respect rate limits). Returns counts. Never throws.
  */
 export async function sendBulkEmails(
   messages: OutgoingEmail[],
+  opts?: BulkSendOptions,
 ): Promise<{ sent: number; failed: number }> {
   if (!resend) {
     console.warn("[email] RESEND_API_KEY not set — skipping bulk send.");
     return { sent: 0, failed: messages.length };
   }
+  const from = opts?.fromName
+    ? `${sanitizeDisplayName(opts.fromName)} <${FROM_EMAIL}>`
+    : FROM;
+  const replyTo = opts?.replyTo ?? REPLY_TO;
   let sent = 0;
   let failed = 0;
   for (let i = 0; i < messages.length; i += 100) {
@@ -39,8 +59,8 @@ export async function sendBulkEmails(
     try {
       const { error } = await resend.batch.send(
         chunk.map((m) => ({
-          from: FROM,
-          replyTo: REPLY_TO,
+          from,
+          replyTo,
           to: m.to,
           subject: m.subject,
           html: m.html,

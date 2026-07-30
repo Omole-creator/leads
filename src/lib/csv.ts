@@ -63,3 +63,30 @@ export function field(row: Record<string, string>, aliases: string[]): string {
   }
   return "";
 }
+
+/**
+ * Quote one cell for output. A cell needs quoting when it contains a comma, a
+ * double quote, a newline/CR, or leading/trailing whitespace a reader would
+ * otherwise eat. Inner quotes are doubled, per RFC4180.
+ */
+export function csvCell(value: string | null | undefined): string {
+  const s = value ?? "";
+  return /[",\r\n]|^\s|\s$/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+/**
+ * Serialize rows to CSV against a fixed header order. Every header is emitted
+ * for every row and a missing value becomes an empty cell, so a half-filled
+ * record still round-trips out and back in through parseCsv().
+ * CRLF line endings, which is what RFC4180 and Excel expect.
+ */
+export function toCsv(
+  headers: string[],
+  rows: Record<string, string | null | undefined>[],
+): string {
+  const lines = [headers.map(csvCell).join(",")];
+  for (const row of rows) {
+    lines.push(headers.map((h) => csvCell(row[h])).join(","));
+  }
+  return lines.join("\r\n") + "\r\n";
+}

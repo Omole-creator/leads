@@ -1,9 +1,28 @@
-// Replace {{name}}, {{firstName}}, {{track}} (etc.) placeholders in a template.
+/**
+ * Replace {{name}}, {{firstName}}, {{track}} (etc.) placeholders in a template.
+ *
+ * A token may carry a fallback after a pipe — `{{first_name|there}}` — used when
+ * the value is missing OR blank. Cold-outreach contacts are imported from CSVs
+ * where most columns are empty, so without this a template renders "Hi ,".
+ *
+ * Adding the pipe cannot change any template that renders correctly today: `|`
+ * is not in `\w`, so `{{x|y}}` never matched the old pattern and came out as
+ * literal text. Only already-broken strings behave differently.
+ */
 export function renderTemplate(
   tpl: string,
   vars: Record<string, string>,
 ): string {
-  return tpl.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, k: string) => vars[k] ?? "");
+  return tpl.replace(
+    /\{\{\s*(\w+)\s*(?:\|([^}]*?))?\s*\}\}/g,
+    (_, k: string, fallback: string | undefined) => {
+      const v = vars[k];
+      if (v && v.trim() !== "") return v;
+      // Trimmed so `{{ company | your team }}` reads the same as
+      // `{{company|your team}}`.
+      return fallback?.trim() ?? "";
+    },
+  );
 }
 
 // The double quote is escaped too: every URL we interpolate lands inside a
@@ -71,8 +90,21 @@ function renderLinks(line: string): string {
   return s.replace(/\x00(\d+)\x00/g, (_m, i: string) => held[Number(i)]);
 }
 
+export interface EmailShell {
+  /**
+   * Footer under the rule, replacing the course-enquiry line. This is injected
+   * as **trusted HTML** (it sits outside the escaped body), so it must only ever
+   * be built in code — never from user input. The one caller is
+   * outreachFooter() in src/lib/outreach-templates.ts.
+   */
+  footer?: string;
+}
+
+const DEFAULT_FOOTER =
+  "You're receiving this because you enquired about JobMingle Academy.";
+
 /** Wrap a plain-text body into a simple branded HTML email. */
-export function bodyToHtml(text: string): string {
+export function bodyToHtml(text: string, shell?: EmailShell): string {
   const inner = escapeHtml(text)
     .split("\n")
     .map((l) =>
@@ -86,7 +118,7 @@ export function bodyToHtml(text: string): string {
     <div style="border-top:4px solid #FFD400;padding-top:16px">${inner}</div>
     <hr style="border:none;border-top:1px solid #eee;margin:24px 0"/>
     <p style="font-size:12px;color:#888;margin:0">
-      You're receiving this because you enquired about JobMingle Academy.
+      ${shell?.footer ?? DEFAULT_FOOTER}
     </p>
   </div></body></html>`;
 }
